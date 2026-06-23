@@ -48,12 +48,13 @@ public class GameController
 
     public GameState GetGameState()
     {
+        return _gameState;
         
     }
 
     public GameRound GetCurrentRound()
     {
-        
+        return _currentRound;
     }
     public bool IsGameOver()
     {
@@ -77,27 +78,27 @@ public class GameController
 
     public List<IPlayer> GetAllPlayers()
     {
-        
+        return _players;
     }
 
     public IPlayer GetDealer()
     {
-        
+        return _players[_dealerIndex];
     }
 
     public PlayerStatus GetPlayerStatus(IPlayer player)
     {
-        
+        return player.Status;
     }
 
     public List<ICard> GetPlayerHoleCards(IPlayer player)
     {
-        
+        return _holeCards[player];
     }
 
     public List<IChip> GetPlayerChips(IPlayer player)
     {
-        
+        return _chips[player];
     }
 
     public int GetPlayerTotalChips(IPlayer player)
@@ -283,7 +284,7 @@ public class GameController
 
     private void EliminateBustedPlayers()
     {
-        
+
     }
 
 
