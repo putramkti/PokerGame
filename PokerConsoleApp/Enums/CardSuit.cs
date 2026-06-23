@@ -1,4 +1,4 @@
-namespace PokerConsoleApp.Enumeration;
+namespace PokerConsoleApp.Enums;
 
 public enum CardSuit
 {

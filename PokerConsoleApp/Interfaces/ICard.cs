@@ -1,6 +1,6 @@
-using PokerConsoleApp.Enumeration;
+using PokerConsoleApp.Enums;
 
-namespace PokerConsoleApp.Interface;
+namespace PokerConsoleApp.Interfaces;
 
 public interface ICard
 {

@@ -1,4 +1,4 @@
-namespace PokerConsoleApp.Interface;
+namespace PokerConsoleApp.Interfaces;
 
 public interface IChip
 {

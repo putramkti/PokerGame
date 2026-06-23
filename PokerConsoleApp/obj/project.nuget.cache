@@ -1,8 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "ud0//o/jLwY=",
+  "dgSpecHash": "djSYbfk/nAg=",
   "success": true,
-  "projectFilePath": "C:\\Users\\putra\\Documents\\PokerGame\\PokerConsoleApp\\PokerConsoleApp.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "D:\\BOOTCAMP\\PokerGame\\PokerConsoleApp\\PokerConsoleApp.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\putra\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.16\\microsoft.netcore.app.ref.9.0.16.nupkg.sha512",
+    "C:\\Users\\putra\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.16\\microsoft.windowsdesktop.app.ref.9.0.16.nupkg.sha512",
+    "C:\\Users\\putra\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.16\\microsoft.aspnetcore.app.ref.9.0.16.nupkg.sha512",
+    "C:\\Users\\putra\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\9.0.16\\microsoft.netcore.app.host.win-x64.9.0.16.nupkg.sha512"
+  ],
   "logs": []
 }
