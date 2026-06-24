@@ -68,7 +68,7 @@ public class GameController
         Random random = new Random();
         _dealerIndex = random.Next(0, _players.Count);
 
-
+        StartNewHand();
     }
 
     public void StartNexthand()
@@ -88,12 +88,13 @@ public class GameController
     }
     public bool IsGameOver()
     {
-
+        return _players.Count(p => p.Status != PlayerStatus.Bust) <= 1;
     }
 
     public IPlayer GetGameWinner()
     {
-        
+        //masih dummy
+        return new Player("");
 
     }
 
@@ -105,7 +106,7 @@ public class GameController
 
     public IPlayer GetCurrentPlayer()
     {
-
+        return _players[_currentPlayerIndex];
     }
 
     public List<IPlayer> GetAllPlayers()
@@ -140,12 +141,12 @@ public class GameController
 
     public int GetPlayerTotalChips(IPlayer player)
     {
-
+        return _chips.ContainsKey(player) ? _chips[player] : 0;
     }
 
     public int GetPlayerCurrentBet(IPlayer player)
     {
-
+        return _currentBets.ContainsKey(player) ? _currentBets[player] : 0;
     }
 
     public int GetSmallBind()
@@ -165,38 +166,39 @@ public class GameController
 
     public int GetCallAmount(IPlayer player)
     {
-
+        return _currentHighestbet - GetPlayerCurrentBet(player);
     }
 
     public int GetMinRaise()
     {
-        
+        return _currentHighestbet + _lastRaiseAmount;
     }
 
     public List<BettingAction> GetAvailableBettingAction(IPlayer player)
     {
-
+        // TODO: nanti isi algoritmanya
+        return new List<BettingAction>();
     }
 
 
     public List<ICard> GetCommunityCards()
     {
-
+       return _table.CommunityCards;
     }
 
     public IPot GetMainPot()
     {
-
+        return _pots.FirstOrDefault();
     }
 
     public List<IPot> GetSidePots()
     {
-
+        return _pots.Skip(1).ToList();
     }
 
     public int GetTotalPotAmount()
     {
-
+        return _pots.Sum(p => p.TotalChips) + _currentBets.Values.Sum();
     }
 
     public void Fold(IPlayer player)
@@ -247,6 +249,7 @@ public class GameController
         DealHoleCards();
 
         _currentPlayerIndex = (_lastRaiserIndex + 1) % _players.Count;
+        RunBettingRound();
 
     }
 
@@ -331,13 +334,13 @@ public class GameController
         if (IsBettingRoundOver())
         {
             CollectBetsToPot();
-
+            TransitionToNextRound();
         }
     }
 
     private void NextPlayer()
     {
-
+        
     }
 
     private bool IsBettingRoundOver()
@@ -354,6 +357,7 @@ public class GameController
 
     private void CollectBetsToPot()
     {
+        // TODO: nanti cek lagi apakah sudah ada fungsi untuk kapan harus create side pots
         CreateSidePots();
 
         foreach (var key in _currentBets.Keys.ToList())
@@ -428,9 +432,9 @@ public class GameController
         int totalCollected = _currentBets.Values.Sum();
         if(totalCollected > 0)
         {
-            IPot mainPot = new Pot();
-            mainPot.TotalChips = totalCollected;
-            _pots.Add(mainPot);
+            IPot pot = new Pot();
+            pot.TotalChips = totalCollected;
+            _pots.Add(pot);
         }
     }
 
@@ -440,6 +444,7 @@ public class GameController
 
         if(winners.Count > 0 && _pots.Count() > 0)
         {
+            //TODO: nanti revisi algoritma pembagian chips dari pots nya, foreach dulu potsnya-> jika pemenang ada dalam contributions pots bagi ke pemenang
             int share = _pots.Sum(p => p.TotalChips) / winners.Count;
 
             foreach(var winner in winners)
@@ -451,10 +456,13 @@ public class GameController
 
     private void EliminateBustedPlayers()
     {
-
+        foreach (var player in _players)
+        {
+            if (_chips[player] <= 0)
+            {
+                player.Status = PlayerStatus.Bust;
+            }
+        }
     }
-
-
-
 
 }
