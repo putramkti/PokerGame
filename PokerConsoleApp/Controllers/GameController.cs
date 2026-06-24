@@ -186,8 +186,33 @@ public class GameController
 
     public List<BettingAction> GetAvailableBettingAction(IPlayer player)
     {
-        // TODO: nanti isi algoritmanya
-        return new List<BettingAction>();
+        var actions = new List<BettingAction>();
+
+        if (player != GetCurrentPlayer() || player.Status != PlayerStatus.Active)
+        {
+            return actions;
+        }
+
+        int callAmount = GetCallAmount(player);
+        int playerChips = GetPlayerTotalChips(player);
+
+        actions.Add(BettingAction.Fold);
+
+        if(callAmount == 0)
+        {
+            actions.Add(BettingAction.Check);
+        }else if( playerChips >= callAmount)
+        {
+            actions.Add(BettingAction.Call);
+        }
+
+        if(playerChips > callAmount)
+        {
+            actions.Add(BettingAction.Raise);
+        }
+
+        actions.Add(BettingAction.AllIn);
+        return actions;
     }
 
 
