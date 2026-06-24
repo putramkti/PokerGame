@@ -6,6 +6,7 @@ public class Pot : IPot
 {
     public Pot()
     {
+        Contributions = new Dictionary<IPlayer, int>();
     }
 
 

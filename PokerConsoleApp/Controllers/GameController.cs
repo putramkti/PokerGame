@@ -244,7 +244,7 @@ public class GameController
         int additionalBet = amount - _currentBets[player];
 
         _chips[player] -= additionalBet;
-        _currentBets[player] = additionalBet;
+        _currentBets[player] = amount;
 
         _lastRaiseAmount = amount - _currentHighestbet;
         _currentHighestbet = amount;
@@ -330,7 +330,7 @@ public class GameController
         _currentBets[sbPlayer] = sbTax;
 
         var bbPlayer = _players[bbIndex];
-        int bbTax = Math.Min(_smallBlind, _chips[bbPlayer]);
+        int bbTax = Math.Min(_bigBlind, _chips[bbPlayer]);
         _chips[bbPlayer] -= bbTax;
         _currentBets[bbPlayer] = bbTax;
 
@@ -421,7 +421,7 @@ public class GameController
             return true;
         }
 
-        return activePlayers.All(p => _currentBets[p] == _currentHighestbet && _currentPlayerIndex == _lastRaiserIndex );
+        return activePlayers.All(p => _currentBets[p] == _currentHighestbet) && _currentPlayerIndex == _lastRaiserIndex ;
     }
 
     private void CollectBetsToPot()
