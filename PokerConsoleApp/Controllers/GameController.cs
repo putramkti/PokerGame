@@ -73,7 +73,22 @@ public class GameController
 
     public void StartNexthand()
     {
+        if(_gameState != GameState.HandComplete && _gameState != GameState.InProgress)
+        {
+            throw new InvalidOperationException("Belum bisa mulai hand baru, hand sebelumnya belum selesai");
+        }
 
+        EliminateBustedPlayers();
+
+        if (IsGameOver())
+        {
+            _gameState = GameState.GameOver;
+            return;
+        }
+
+        RotateDealer();
+
+        StartNewHand();
     }
 
     public GameState GetGameState()
@@ -129,11 +144,6 @@ public class GameController
         return _holeCards[player];
     }
 
-    // public List<IChip> GetPlayerChips(IPlayer player)
-    // {
-    //     return _chips[player];
-    // }
-
     public int GetPlayerChips(IPlayer player)
     {
         return _chips[player];
@@ -176,8 +186,33 @@ public class GameController
 
     public List<BettingAction> GetAvailableBettingAction(IPlayer player)
     {
-        // TODO: nanti isi algoritmanya
-        return new List<BettingAction>();
+        var actions = new List<BettingAction>();
+
+        if (player != GetCurrentPlayer() || player.Status != PlayerStatus.Active)
+        {
+            return actions;
+        }
+
+        int callAmount = GetCallAmount(player);
+        int playerChips = GetPlayerTotalChips(player);
+
+        actions.Add(BettingAction.Fold);
+
+        if(callAmount == 0)
+        {
+            actions.Add(BettingAction.Check);
+        }else if( playerChips >= callAmount)
+        {
+            actions.Add(BettingAction.Call);
+        }
+
+        if(playerChips > callAmount)
+        {
+            actions.Add(BettingAction.Raise);
+        }
+
+        actions.Add(BettingAction.AllIn);
+        return actions;
     }
 
 
@@ -203,27 +238,67 @@ public class GameController
 
     public void Fold(IPlayer player)
     {
-
+        player.Status = PlayerStatus.Folded;
+        NextPlayer();
     }
 
     public void Check(IPlayer player)
     {
-
+        NextPlayer();
     }
 
     public void Call(IPlayer player)
     {
+        int callAmount = GetCallAmount(player);
 
+        int chipsToBet = Math.Min(callAmount, _chips[player]);
+
+        _chips[player] -= chipsToBet;
+        _currentBets[player] += chipsToBet;
+
+        if (_chips[player] == 0)
+        {
+            player.Status  = PlayerStatus.AllIn;
+        }
+
+        NextPlayer();
     }
 
     public void Raise(IPlayer player, int amount)
     {
+        int additionalBet = amount - _currentBets[player];
 
+        _chips[player] -= additionalBet;
+        _currentBets[player] = amount;
+
+        _lastRaiseAmount = amount - _currentHighestbet;
+        _currentHighestbet = amount;
+        _lastRaiserIndex = _currentPlayerIndex;
+
+        if(_chips[player] == 0)
+        {
+            player.Status = PlayerStatus.AllIn;
+        }
+
+        NextPlayer();
     }
 
     public void AllIn(IPlayer player)
     {
+        int allInAmount = _chips[player] + _currentBets[player];
 
+        if(allInAmount > _currentHighestbet)
+        {
+            _lastRaiseAmount = allInAmount - _currentHighestbet;
+            _currentHighestbet = allInAmount;
+            _lastRaiserIndex = _currentPlayerIndex;
+        }
+
+        _currentBets[player] = allInAmount;
+        _chips[player] = 0;
+        player.Status = PlayerStatus.AllIn;
+
+        NextPlayer();
     }
 
     private void StartNewHand()
@@ -263,7 +338,10 @@ public class GameController
 
     private void RotateDealer()
     {
-
+        do
+        {
+            _dealerIndex = (_dealerIndex + 1) % _players.Count();
+        }while(_players[_dealerIndex].Status == PlayerStatus.Bust);
     }
 
     private void PostBlinds()
@@ -277,7 +355,7 @@ public class GameController
         _currentBets[sbPlayer] = sbTax;
 
         var bbPlayer = _players[bbIndex];
-        int bbTax = Math.Min(_smallBlind, _chips[bbPlayer]);
+        int bbTax = Math.Min(_bigBlind, _chips[bbPlayer]);
         _chips[bbPlayer] -= bbTax;
         _currentBets[bbPlayer] = bbTax;
 
@@ -311,23 +389,29 @@ public class GameController
 
     private void DealFlop()
     {
+        //TODO: coba riset lagi apakah perlu kartunya di burn
+        DealCard();
 
+        _table.CommunityCards.Add(DealCard());
+        _table.CommunityCards.Add(DealCard());
+        _table.CommunityCards.Add(DealCard());
     }
 
     private void DealTurn()
     {
+        //TODO: coba riset lagi apakah perlu kartunya di burn
+        DealCard();
 
+        _table.CommunityCards.Add(DealCard());
     }
 
     private void DealRiver()
     {
+        //TODO: coba riset lagi apakah perlu kartunya di burn
+        DealCard();
 
+        _table.CommunityCards.Add(DealCard());
     }
-
-    // private void RunShowdown()
-    // {
-
-    // }
 
     private void RunBettingRound()
     {
@@ -340,7 +424,17 @@ public class GameController
 
     private void NextPlayer()
     {
-        
+        if (IsBettingRoundOver())
+        {
+            CollectBetsToPot();
+            TransitionToNextRound();
+            return;
+        }
+
+        do
+        {
+            _currentPlayerIndex  = (_currentPlayerIndex + 1) % _players.Count();
+        } while(_players[_currentPlayerIndex].Status != PlayerStatus.Active);
     }
 
     private bool IsBettingRoundOver()
@@ -352,7 +446,7 @@ public class GameController
             return true;
         }
 
-        return activePlayers.All(p => _currentBets[p] == _currentHighestbet && _currentPlayerIndex == _lastRaiserIndex );
+        return activePlayers.All(p => _currentBets[p] == _currentHighestbet) && _currentPlayerIndex == _lastRaiserIndex ;
     }
 
     private void CollectBetsToPot()

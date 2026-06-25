@@ -6,6 +6,7 @@ public class Table : ITable
 {
     public Table()
     {
+        CommunityCards = new List<ICard>();
     }
 
 
