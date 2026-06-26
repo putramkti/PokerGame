@@ -73,7 +73,7 @@ public class GameController
 
     public void StartNexthand()
     {
-        if(_gameState != GameState.HandComplete && _gameState != GameState.InProgress)
+        if (_gameState != GameState.HandComplete && _gameState != GameState.InProgress)
         {
             throw new InvalidOperationException("Belum bisa mulai hand baru, hand sebelumnya belum selesai");
         }
@@ -108,9 +108,7 @@ public class GameController
 
     public IPlayer GetGameWinner()
     {
-        //masih dummy
-        return new Player("");
-
+        return _players.First(p => p.Status != PlayerStatus.Bust);
     }
 
     public List<IPlayer> GetHandWinners()
@@ -198,15 +196,16 @@ public class GameController
 
         actions.Add(BettingAction.Fold);
 
-        if(callAmount == 0)
+        if (callAmount == 0)
         {
             actions.Add(BettingAction.Check);
-        }else if( playerChips >= callAmount)
+        }
+        else if (playerChips >= callAmount)
         {
             actions.Add(BettingAction.Call);
         }
 
-        if(playerChips > callAmount)
+        if (playerChips > callAmount)
         {
             actions.Add(BettingAction.Raise);
         }
@@ -218,7 +217,7 @@ public class GameController
 
     public List<ICard> GetCommunityCards()
     {
-       return _table.CommunityCards;
+        return _table.CommunityCards;
     }
 
     public IPot GetMainPot()
@@ -258,7 +257,7 @@ public class GameController
 
         if (_chips[player] == 0)
         {
-            player.Status  = PlayerStatus.AllIn;
+            player.Status = PlayerStatus.AllIn;
         }
 
         NextPlayer();
@@ -275,7 +274,7 @@ public class GameController
         _currentHighestbet = amount;
         _lastRaiserIndex = _currentPlayerIndex;
 
-        if(_chips[player] == 0)
+        if (_chips[player] == 0)
         {
             player.Status = PlayerStatus.AllIn;
         }
@@ -287,7 +286,7 @@ public class GameController
     {
         int allInAmount = _chips[player] + _currentBets[player];
 
-        if(allInAmount > _currentHighestbet)
+        if (allInAmount > _currentHighestbet)
         {
             _lastRaiseAmount = allInAmount - _currentHighestbet;
             _currentHighestbet = allInAmount;
@@ -341,11 +340,12 @@ public class GameController
         do
         {
             _dealerIndex = (_dealerIndex + 1) % _players.Count();
-        }while(_players[_dealerIndex].Status == PlayerStatus.Bust);
+        } while (_players[_dealerIndex].Status == PlayerStatus.Bust);
     }
 
     private void PostBlinds()
     {
+        // TODO: tambahkan skip bust/fold player
         int sbIndex = (_dealerIndex + 1) % _players.Count;
         int bbIndex = (_dealerIndex + 2) % _players.Count;
 
@@ -366,7 +366,7 @@ public class GameController
 
     private void DealHoleCards()
     {
-        for(int i = 0; i < 2; i++)
+        for (int i = 0; i < 2; i++)
         {
             foreach (var player in _players.Where(p => p.Status == PlayerStatus.Active))
             {
@@ -433,20 +433,20 @@ public class GameController
 
         do
         {
-            _currentPlayerIndex  = (_currentPlayerIndex + 1) % _players.Count();
-        } while(_players[_currentPlayerIndex].Status != PlayerStatus.Active);
+            _currentPlayerIndex = (_currentPlayerIndex + 1) % _players.Count();
+        } while (_players[_currentPlayerIndex].Status != PlayerStatus.Active);
     }
 
     private bool IsBettingRoundOver()
     {
         var activePlayers = _players.Where(p => p.Status == PlayerStatus.Active).ToList();
 
-        if(activePlayers.Count <= 1)
+        if (activePlayers.Count <= 1)
         {
             return true;
         }
 
-        return activePlayers.All(p => _currentBets[p] == _currentHighestbet) && _currentPlayerIndex == _lastRaiserIndex ;
+        return activePlayers.All(p => _currentBets[p] == _currentHighestbet) && _currentPlayerIndex == _lastRaiserIndex;
     }
 
     private void CollectBetsToPot()
@@ -462,13 +462,13 @@ public class GameController
 
     private void TransitionToNextRound()
     {
-        if(_players.Count(p => p.Status == PlayerStatus.Active) <= 1)
+        if (_players.Count(p => p.Status == PlayerStatus.Active) <= 1)
         {
             RoundShowdown();
             return;
         }
 
-        switch(_currentRound)
+        switch (_currentRound)
         {
             case GameRound.PreFlop:
                 _currentRound = GameRound.Flop;
@@ -508,23 +508,176 @@ public class GameController
             // bypass evaluasi kartu dan 1 survivor menang
         }
     }
+    private List<IPlayer> CompareHands(List<IPlayer> players)
+    {
+        if(players == null || players.Count == 0)
+        {
+            return new List<IPlayer>();
+        }
 
+        var handResults = new List<HandEvaluation>();
+
+        foreach (var player in players)
+        {
+            var allSevenCards = _holeCards[player].Concat(_table.CommunityCards).ToList();
+
+            var result = GetBestHandResult(player, allSevenCards);
+
+            handResults.Add(result);
+        }
+
+        var sortedResult = handResults.OrderByDescending(r => r).ToList();
+
+        var winners = new List<IPlayer>();
+
+        if(sortedResult.Count > 0)
+        {
+            var bestResult = sortedResult[0];
+            winners.Add(bestResult.Player);
+
+            for (int i = 1; i < sortedResult.Count; i++)
+            {
+                if(sortedResult[i].CompareTo(bestResult) == 0)
+                {
+                    winners.Add(sortedResult[i].Player);
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        return winners;
+    }
     private HandRank EvaluateHand(IPlayer player)
     {
         // TODO: nanti tambahkan algoritma kombinasi kartu
-        return HandRank.HighCard;
+        var allSevenCard = _holeCards[player].Concat(_table.CommunityCards).ToList();
+        var result = GetBestHandResult(player, allSevenCard);
+
+        return result.HandRank;
+
     }
 
-    private List<IPlayer> CompareHands(List<IPlayer> players)
+    private HandEvaluation GetBestHandResult(IPlayer player, List<ICard> sevenCards)
     {
-        // TODO: nanti tambahkan algoritma urutan kartu pemain dari terkuat ke terlemah dari hasil evaluateHands
-        return players;
+
+        var orderedCards = sevenCards.OrderByDescending(c => c.Rank).ToList();
+
+        var rankGroups = orderedCards.GroupBy(c => c.Rank).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Key).ToList();
+        var suitGroups = orderedCards.GroupBy(c => c.Suit).Where(g => g.Count() >= 5).FirstOrDefault();
+
+        bool isFlush = suitGroups != null;
+
+        if (isFlush)
+        {
+            var flushCards = suitGroups.OrderByDescending(c => c.Rank).ToList();
+
+            var straightFlushCards = GetStraightSequence(flushCards);
+
+            if (straightFlushCards != null)
+            {
+                if (straightFlushCards[0].Rank == CardRank.Ace)
+                {
+                    return new HandEvaluation() { Player = player, HandRank = HandRank.RoyalFlush, BestFiveCards = straightFlushCards };
+                }
+                return new HandEvaluation() { Player = player, HandRank = HandRank.StraightFlush, BestFiveCards = straightFlushCards };
+            }
+
+            return new HandEvaluation() { Player = player, HandRank = HandRank.Flush, BestFiveCards = flushCards };
+        }
+
+        // four of a kind
+        if (rankGroups[0].Count() == 4)
+        {
+            var bestFive = rankGroups[0].ToList();
+
+            var kicker = orderedCards.First(c => c.Rank != rankGroups[0].Key);
+            bestFive.Add(kicker);
+            return new HandEvaluation { Player = player, HandRank = HandRank.FourOfAKind, BestFiveCards = bestFive };
+        }
+
+        // fullhouse (3kembar + 2lembar)
+        if (rankGroups[0].Count() == 3 && rankGroups.Count > 1 && rankGroups[1].Count() > 2)
+        {
+            var bestFive = rankGroups[0].ToList();
+
+            bestFive.AddRange(rankGroups[1].Take(2));
+            return new HandEvaluation { Player = player, HandRank = HandRank.FullHouse, BestFiveCards = bestFive };
+        }
+
+        //straight
+        var straightCards = GetStraightSequence(orderedCards);
+        if (straightCards != null)
+        {
+            return new HandEvaluation { Player = player, HandRank = HandRank.Straight, BestFiveCards = straightCards };
+        }
+
+        // three of a kind
+        if (rankGroups[0].Count() == 3)
+        {
+            var bestFive = rankGroups[0].ToList();
+
+            var kickers = orderedCards.Where(c => c.Rank != rankGroups[0].Key).Take(2);
+            bestFive.AddRange(kickers);
+            return new HandEvaluation { Player = player, HandRank = HandRank.ThreeOfAKind, BestFiveCards = bestFive };
+        }
+
+        // two pair
+        if (rankGroups[0].Count() == 2 && rankGroups.Count > 1 && rankGroups[1].Count() == 2)
+        {
+            var bestFive = rankGroups[0].ToList();
+            bestFive.AddRange(rankGroups[1].ToList());
+
+            var kicker = orderedCards.First(c => c.Rank != rankGroups[0].Key && c.Rank != rankGroups[1].Key);
+            bestFive.Add(kicker);
+            return new HandEvaluation { Player = player, HandRank = HandRank.TwoPair, BestFiveCards = bestFive };
+        }
+
+        // one pair
+        if (rankGroups[0].Count() == 2)
+        {
+            var bestFive = rankGroups[0].ToList();
+
+            var kickers = orderedCards.Where(c => c.Rank != rankGroups[0].Key).Take(3);
+            bestFive.AddRange(kickers);
+            return new HandEvaluation { Player = player, HandRank = HandRank.OnePair, BestFiveCards = bestFive };
+        }
+
+        return new HandEvaluation { Player = player, HandRank = HandRank.HighCard, BestFiveCards = orderedCards.Take(5).ToList() };
     }
+
+    private List<ICard> GetStraightSequence(List<ICard> cards)
+    {
+        var uniqueCards = cards.GroupBy(c => c.Rank).Select(g => g.FirstOrDefault()).OrderByDescending(c => c.Rank).ToList();
+
+        if (uniqueCards.Count < 5)
+        {
+            return null;
+        }
+
+        for (int i = 0; i <= uniqueCards.Count - 5; i++)
+        {
+            if ((int)uniqueCards[i].Rank - (int)uniqueCards[i + 4].Rank == 4)
+            {
+                return uniqueCards.Skip(i).Take(5).ToList();
+            }
+        }
+
+        // TODO : nanti tambahkan aturan well straight
+        return null;
+
+        
+
+    }
+
+
 
     private void CreateSidePots()
     {
         int totalCollected = _currentBets.Values.Sum();
-        if(totalCollected > 0)
+        if (totalCollected > 0)
         {
             IPot pot = new Pot();
             pot.TotalChips = totalCollected;
@@ -536,12 +689,12 @@ public class GameController
     {
         var winners = GetHandWinners();
 
-        if(winners.Count > 0 && _pots.Count() > 0)
+        if (winners.Count > 0 && _pots.Count() > 0)
         {
             //TODO: nanti revisi algoritma pembagian chips dari pots nya, foreach dulu potsnya-> jika pemenang ada dalam contributions pots bagi ke pemenang
             int share = _pots.Sum(p => p.TotalChips) / winners.Count;
 
-            foreach(var winner in winners)
+            foreach (var winner in winners)
             {
                 _chips[winner] += share;
             }

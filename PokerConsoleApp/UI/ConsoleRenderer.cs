@@ -13,12 +13,12 @@ public class ConsoleRenderer
     {
         _controller = controller;
     }
-    
+
     public void DrawGameBoard()
     {
         Console.Clear();
         Console.WriteLine("=====================================================================");
-        Console.WriteLine($"         INI POKER CUY (STATUS: {_controller.GetGameState()})     ");
+        Console.WriteLine($"         INI POKER CUY (Round: {_controller.GetCurrentRound()})     ");
         Console.WriteLine("=====================================================================");
 
         DrawCommunityCards();
@@ -33,7 +33,7 @@ public class ConsoleRenderer
         Console.Write("Community Cards :");
         var cards = _controller.GetCommunityCards();
 
-        if(cards == null || cards.Count() == 0)
+        if (cards == null || cards.Count() == 0)
         {
             Console.WriteLine("[Belum ada kartu]");
         }
@@ -64,20 +64,20 @@ public class ConsoleRenderer
         IPlayer currentPlayer = _controller.GetCurrentPlayer();
         IPlayer dealer = _controller.GetDealer();
 
-        for(int i = 0; i < allPlayers.Count; i++)
+        for (int i = 0; i < allPlayers.Count; i++)
         {
             var player = allPlayers[i];
 
-            string turnMarker = (player == currentPlayer && _controller.GetGameState() == GameState.InProgress)? "--> " : "    ";
+            string turnMarker = (player == currentPlayer && _controller.GetGameState() == GameState.InProgress) ? "--> " : "    ";
 
-            string dealerMarker =  (player == dealer) ? "[D] " : "    ";
+            string dealerMarker = (player == dealer) ? "[D] " : "    ";
 
-            Console.Write($"{turnMarker}{dealerMarker} {i+1}. {player.Name, -10} | Chips: {_controller.GetPlayerChips(player), -6} | Bets: {_controller.GetPlayerCurrentBet(player), -5} | Status: {player.Status}");
-            
+            Console.Write($"{turnMarker}{dealerMarker} {i + 1}. {player.Name,-10} | Chips: {_controller.GetPlayerChips(player),-6} | Bets: {_controller.GetPlayerCurrentBet(player),-5} | Status: {player.Status}");
+
             var holeCards = _controller.GetPlayerHoleCards(player);
             Console.Write(" | Kartu: ");
 
-            if(holeCards == null || holeCards.Count == 0)
+            if (holeCards == null || holeCards.Count == 0)
             {
                 Console.Write("Kartru belum dibagikan");
             }
@@ -103,28 +103,28 @@ public class ConsoleRenderer
         }
     }
 
-    private string  GetSuitSymbol(CardSuit suit)
+    private string GetSuitSymbol(CardSuit suit)
     {
         return suit switch
         {
-            CardSuit.Spades   => "♠",
-            CardSuit.Hearts   => "♥",
+            CardSuit.Spades => "♠",
+            CardSuit.Hearts => "♥",
             CardSuit.Diamonds => "♦",
-            CardSuit.Clubs    => "♣",
-            _                 => "?"
+            CardSuit.Clubs => "♣",
+            _ => "?"
         };
     }
 
-    private string  GetRankDisplay(CardRank rank)
+    private string GetRankDisplay(CardRank rank)
     {
         return rank switch
         {
-            CardRank.Ace   => "A",
-            CardRank.King  => "K",
+            CardRank.Ace => "A",
+            CardRank.King => "K",
             CardRank.Queen => "Q",
-            CardRank.Jack  => "J",
-            CardRank.Ten   => "10",
-            _              => ((int)rank).ToString()
+            CardRank.Jack => "J",
+            CardRank.Ten => "10",
+            _ => ((int)rank).ToString()
         };
     }
 

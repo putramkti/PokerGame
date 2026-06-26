@@ -3,8 +3,6 @@ using PokerConsoleApp.Enums;
 using PokerConsoleApp.Interfaces;
 using PokerConsoleApp.UI;
 
-Console.WriteLine("===============INI GAME POKER==================");
-
 GameController gameController = new GameController(25, 50);
 
 gameController.AddPlayer("Putra1", 1000);
