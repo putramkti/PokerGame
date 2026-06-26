@@ -42,7 +42,7 @@ public class ConsoleRenderer
             foreach (var card in cards)
             {
                 setCardColor(card.Suit);
-                Console.Write($"{GetRankDisplay(card.Rank)}{GetSuitSymbol(card.Suit)}");
+                Console.Write($"[{GetRankDisplay(card.Rank)}{GetSuitSymbol(card.Suit)}] ");
                 Console.ResetColor();
             }
             Console.WriteLine();

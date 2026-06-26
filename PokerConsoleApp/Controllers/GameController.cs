@@ -346,8 +346,8 @@ public class GameController
     private void PostBlinds()
     {
         // TODO: tambahkan skip bust/fold player
-        int sbIndex = (_dealerIndex + 1) % _players.Count;
-        int bbIndex = (_dealerIndex + 2) % _players.Count;
+        int sbIndex = GetNextActivePlayerIndex(_dealerIndex);
+        int bbIndex = GetNextActivePlayerIndex(sbIndex);
 
         var sbPlayer = _players[sbIndex];
         int sbTax = Math.Min(_smallBlind, _chips[sbPlayer]);
@@ -362,6 +362,17 @@ public class GameController
         _currentHighestbet = _bigBlind;
         _lastRaiseAmount = _bigBlind;
         _lastRaiserIndex = bbIndex;
+    }
+
+    private int GetNextActivePlayerIndex(int currentIndex)
+    {
+        int nextactivePlayerIndex = -1;
+        do
+        {
+            nextactivePlayerIndex = (currentIndex + 1) % _players.Count();
+        } while (_players[_currentPlayerIndex].Status != PlayerStatus.Active);
+
+        return nextactivePlayerIndex;
     }
 
     private void DealHoleCards()
@@ -431,6 +442,7 @@ public class GameController
             return;
         }
 
+        // _currentPlayerIndex = GetNextActivePlayerIndex(_currentPlayerIndex);
         do
         {
             _currentPlayerIndex = (_currentPlayerIndex + 1) % _players.Count();
@@ -439,7 +451,7 @@ public class GameController
 
     private bool IsBettingRoundOver()
     {
-        var activePlayers = _players.Where(p => p.Status == PlayerStatus.Active).ToList();
+        List<IPlayer> activePlayers = _players.Where(p => p.Status == PlayerStatus.Active).ToList();
 
         if (activePlayers.Count <= 1)
         {
@@ -502,7 +514,7 @@ public class GameController
 
     private void ResolveIfOnePlayerLeft()
     {
-        var survivors = _players.Where(p => p.Status != PlayerStatus.Folded && p.Status != PlayerStatus.Bust).ToList();
+        List<IPlayer> survivors = _players.Where(p => p.Status != PlayerStatus.Folded && p.Status != PlayerStatus.Bust).ToList();
         if (survivors.Count == 1)
         {
             // bypass evaluasi kartu dan 1 survivor menang
@@ -515,11 +527,11 @@ public class GameController
             return new List<IPlayer>();
         }
 
-        var handResults = new List<HandEvaluation>();
+        List<HandEvaluation> handResults = new List<HandEvaluation>();
 
-        foreach (var player in players)
+        foreach (IPlayer player in players)
         {
-            var allSevenCards = _holeCards[player].Concat(_table.CommunityCards).ToList();
+            List<ICard> allSevenCards = _holeCards[player].Concat(_table.CommunityCards).ToList();
 
             var result = GetBestHandResult(player, allSevenCards);
 
@@ -528,7 +540,7 @@ public class GameController
 
         var sortedResult = handResults.OrderByDescending(r => r).ToList();
 
-        var winners = new List<IPlayer>();
+        List<IPlayer> winners = new List<IPlayer>();
 
         if(sortedResult.Count > 0)
         {
@@ -553,7 +565,7 @@ public class GameController
     private HandRank EvaluateHand(IPlayer player)
     {
         // TODO: nanti tambahkan algoritma kombinasi kartu
-        var allSevenCard = _holeCards[player].Concat(_table.CommunityCards).ToList();
+        List<ICard> allSevenCard = _holeCards[player].Concat(_table.CommunityCards).ToList();
         var result = GetBestHandResult(player, allSevenCard);
 
         return result.HandRank;
@@ -563,7 +575,7 @@ public class GameController
     private HandEvaluation GetBestHandResult(IPlayer player, List<ICard> sevenCards)
     {
 
-        var orderedCards = sevenCards.OrderByDescending(c => c.Rank).ToList();
+        List<ICard> orderedCards = sevenCards.OrderByDescending(c => c.Rank).ToList();
 
         var rankGroups = orderedCards.GroupBy(c => c.Rank).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Key).ToList();
         var suitGroups = orderedCards.GroupBy(c => c.Suit).Where(g => g.Count() >= 5).FirstOrDefault();
@@ -667,9 +679,6 @@ public class GameController
 
         // TODO : nanti tambahkan aturan well straight
         return null;
-
-        
-
     }
 
 

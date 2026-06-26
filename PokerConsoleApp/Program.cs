@@ -21,7 +21,7 @@ while(gameController.GetGameState() != GameState.GameOver)
     if (gameController.GetGameState() == GameState.HandComplete)
     {
         Console.Clear();
-        Console.WriteLine("Hand baruu....");
+        // Console.WriteLine("Hand baruu....");
 
         gameController.StartNexthand();
         continue;
