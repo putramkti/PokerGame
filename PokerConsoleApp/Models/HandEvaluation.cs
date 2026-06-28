@@ -5,11 +5,17 @@ namespace PokerConsoleApp.Models;
 
 public class HandEvaluation : IComparable<HandEvaluation>
 {
+    public HandEvaluation(IPlayer player, HandRank handrank, List<ICard> bestFiveCards)
+    {
+        Player = player;
+        HandRank = handrank;
+        BestFiveCards = bestFiveCards;
+    }
+    public IPlayer Player {get; init;}
+    public HandRank HandRank { get; init; }
 
-    public IPlayer Player {get; set;}
-    public HandRank HandRank { get; set; }
+    public List<ICard> BestFiveCards {get; init;}
 
-    public List<ICard> BestFiveCards {get; set;}
     public int CompareTo(HandEvaluation? other)
     {
         if (other == null)
