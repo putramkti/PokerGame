@@ -76,7 +76,7 @@ public class GameController
         {
             throw new InvalidOperationException("Belum bisa mulai hand baru, hand sebelumnya belum selesai");
         }
-        //TODO: tambahin if else
+        
         EliminateBustedPlayers();
 
         if (IsGameOver())
@@ -148,7 +148,6 @@ public class GameController
 
     public int GetPlayerChips(IPlayer player)
     {
-        //TODO: cek lagi nampaknya sama dengan player total
         return _chips.ContainsKey(player) ? _chips[player].Amount : 0;
     }
 
@@ -515,7 +514,7 @@ public class GameController
                     DealRiver();
             }
 
-            RoundShowdown();
+            RunShowdown();
             return;
         }
 
@@ -544,7 +543,7 @@ public class GameController
                 break;
             case GameRound.River:
                 _currentRound = GameRound.Showdown;
-                RoundShowdown();
+                RunShowdown();
                 break;
         }
 
@@ -552,13 +551,11 @@ public class GameController
 
     }
 
-    private void RoundShowdown()
+    private void RunShowdown()
     {
         _currentRound = GameRound.Showdown;
         _gameState = GameState.HandComplete;
 
-        // CreateSidePots();
-        // TODO: perbaiki lagi logic disini kasih if else
         List<IPlayer> survivors = _players.Where(p => p.Status != PlayerStatus.Folded && p.Status != PlayerStatus.Bust).ToList();
         if (survivors.Count == 1)
         {
@@ -577,7 +574,6 @@ public class GameController
         {
             int uncollected = _currentBets.Values.Sum();
             _chips[survivors[0]].Amount += _pots.Sum(p => p.TotalChips) + uncollected;
-            // _pots.Clear();
 
             foreach (IPlayer key in _currentBets.Keys.ToList())
             {
@@ -647,10 +643,8 @@ public class GameController
         List<IGrouping<CardRank, ICard>> rankGroups = orderedCards.GroupBy(c => c.Rank).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Key).ToList();
         IGrouping<CardSuit, ICard>? suitGroups = orderedCards.GroupBy(c => c.Suit).Where(g => g.Count() >= 5).FirstOrDefault();
 
-        // TODO: Check code qualitynya
-        bool isFlush = suitGroups != null;
-
-        if (isFlush && suitGroups != null)
+        //flush(sama jenis kartuntya)
+        if (suitGroups != null)
         {
             List<ICard> flushCards = suitGroups.OrderByDescending(c => c.Rank).ToList();
 
@@ -803,6 +797,7 @@ public class GameController
             .ToList();
 
         List<IPlayer> eligible = new List<IPlayer>(contributors);
+        // batas minimal setiap level pots
         int previousLevel = 0;
 
         foreach (int level in allInLevels)
@@ -895,20 +890,21 @@ public class GameController
         {
             OnHandWinnersDecided?.Invoke(allWinners);
         }
-        // _pots.Clear();
     }
 
     private int GetNextEligiblePlayerIndex(int currentIndex)
     {
         int next = (currentIndex + 1) % _players.Count;
-        for (int i = 0; i < _players.Count; i++)
+        int start = next;
+        while (_players[next].Status == PlayerStatus.Bust || _players[next].Status == PlayerStatus.Folded)
         {
-            PlayerStatus status = _players[next].Status;
-            if (status != PlayerStatus.Bust && status != PlayerStatus.Folded)
-                return next;
             next = (next + 1) % _players.Count;
+            if (next == start)
+            {
+                return currentIndex;
+            }
         }
-        return currentIndex;
+        return next;
     }
 
     private void EliminateBustedPlayers()

@@ -258,31 +258,6 @@ public class ConsoleRenderer
         DrawBottom();
     }
 
-    public void ShowShowdown(List<IPlayer> players, List<ICard> communityCards)
-    {
-        Console.Clear();
-        DrawTop();
-        DrawLine();
-        DrawCenteredLine("*** SHOWDOWN ***", ConsoleColor.Yellow);
-        DrawLine();
-        DrawCardsLine(" Community Cards : ", communityCards);
-        DrawDivider();
-
-        foreach (IPlayer player in players)
-        {
-            List<ICard> holeCards = _controller.GetPlayerHoleCards(player);
-            HandRank handRank = _controller.GetPlayerHandRank(player);
-            string cardsText = holeCards != null
-                ? string.Join(" ", holeCards.Select(c => c.ToString()))
-                : "";
-
-            DrawLine($" {player.Name,-12} {cardsText,-20} → {handRank}");
-        }
-
-        DrawLine();
-        DrawBottom();
-    }
-
     public void ShowHandResult(List<IPlayer> winners, List<IPot> pots)
     {
         Console.Clear();

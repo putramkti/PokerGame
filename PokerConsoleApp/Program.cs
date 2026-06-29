@@ -20,15 +20,6 @@ void HandleRoundChanged(GameRound round)
 
 void HandleHandWinners(List<IPlayer> winners)
 {  
-    // TODO: fix besok aja sementara ShowShowdown gausa ditampilkan terlebih dahulu
-
-    // if (winners.Count > 1)
-    // {
-        // var communityCards = gameController.GetCommunityCards();
-        // consoleRenderer.ShowShowdown(winners, communityCards);
-        // inputHandler.WaitForEnter();
-    // }
-
     // Tampilkan hand result
     List<IPot> pots = new List<IPot>();
     IPot? mainPot = gameController.GetMainPot();
