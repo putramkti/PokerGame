@@ -30,8 +30,8 @@ void HandleHandWinners(List<IPlayer> winners)
     // }
 
     // Tampilkan hand result
-    var pots = new List<IPot>();
-    var mainPot = gameController.GetMainPot();
+    List<IPot> pots = new List<IPot>();
+    IPot? mainPot = gameController.GetMainPot();
     if (mainPot != null) pots.Add(mainPot);
     pots.AddRange(gameController.GetSidePots());
 

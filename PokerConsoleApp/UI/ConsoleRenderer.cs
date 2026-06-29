@@ -69,7 +69,7 @@ public class ConsoleRenderer
 
     private void DrawCardsLine(string label, IEnumerable<ICard>? cards, string emptyText = "[Belum ada kartu]")
     {
-        var cardList = cards?.ToList() ?? new List<ICard>();
+        List<ICard> cardList = cards?.ToList() ?? new List<ICard>();
 
         SetBorderColor();
         Console.Write("║");
@@ -85,7 +85,7 @@ public class ConsoleRenderer
         }
         else
         {
-            foreach (var card in cardList)
+            foreach (ICard card in cardList)
             {
                 string cardText = card.ToString();
                 setCardColor(card.Suit);
@@ -118,7 +118,7 @@ public class ConsoleRenderer
     public void ShowSetupConfirmation(int smallBlind, int bigBlind)
     {
         Console.Clear();
-        var players = _controller.GetAllPlayers();
+        List<IPlayer> players = _controller.GetAllPlayers();
 
         DrawTop();
         DrawCenteredLine("GAME SIAP DIMULAI!", ConsoleColor.Green);
@@ -127,7 +127,7 @@ public class ConsoleRenderer
         DrawLine($" Small Blind   : {smallBlind}      Big Blind : {bigBlind}");
         DrawLine();
 
-        foreach (var p in players)
+        foreach (IPlayer p in players)
         {
             DrawLine($"   • {p.Name,-20} : {_controller.GetPlayerChips(p)} chips");
         }
@@ -155,8 +155,8 @@ public class ConsoleRenderer
     {
         Console.Clear();
 
-        var sidePots = _controller.GetSidePots();
-        var mainPot = _controller.GetMainPot();
+        List<IPot> sidePots = _controller.GetSidePots();
+        IPot? mainPot = _controller.GetMainPot();
 
         DrawTop();
         DrawCenteredLine("♠ ♥  TEXAS HOLD'EM POKER  ♦ ♣", ConsoleColor.Yellow);
@@ -191,13 +191,13 @@ public class ConsoleRenderer
     {
         DrawLine(" PEMAIN", ConsoleColor.Cyan);
 
-        var allPlayers = _controller.GetAllPlayers();
+        List<IPlayer> allPlayers = _controller.GetAllPlayers();
         IPlayer dealer = _controller.GetDealer();
         bool gameInProgress = _controller.GetGameState() == GameState.InProgress;
 
         for (int i = 0; i < allPlayers.Count; i++)
         {
-            var player = allPlayers[i];
+            IPlayer player = allPlayers[i];
             bool isCurrentTurn = player == currentPlayer && gameInProgress;
 
             string turnMarker = isCurrentTurn ? "▶" : " ";
@@ -212,7 +212,7 @@ public class ConsoleRenderer
     {
         DrawLine(" AKSI", ConsoleColor.Cyan);
 
-        var actions = _controller.GetAvailableBettingAction(currentPlayer);
+        List<BettingAction> actions = _controller.GetAvailableBettingAction(currentPlayer);
         for (int i = 0; i < actions.Count; i++)
         {
             string additionalInfo = "";
@@ -268,9 +268,9 @@ public class ConsoleRenderer
         DrawCardsLine(" Community Cards : ", communityCards);
         DrawDivider();
 
-        foreach (var player in players)
+        foreach (IPlayer player in players)
         {
-            var holeCards = _controller.GetPlayerHoleCards(player);
+            List<ICard> holeCards = _controller.GetPlayerHoleCards(player);
             HandRank handRank = _controller.GetPlayerHandRank(player);
             string cardsText = holeCards != null
                 ? string.Join(" ", holeCards.Select(c => c.ToString()))
@@ -293,11 +293,11 @@ public class ConsoleRenderer
 
         if (pots.Count == 1)
         {
-            var pot = pots[0];
+            IPot pot = pots[0];
             HandRank handRank = _controller.GetPlayerHandRank(winners[0]);
             int share = pot.TotalChips / winners.Count;
 
-            foreach (var winner in winners)
+            foreach (IPlayer winner in winners)
             {
                 DrawCenteredLine($"{winner.Name} memenangkan {share} Chips!", ConsoleColor.Green);
                 DrawCenteredLine($"dengan {handRank}");
@@ -307,17 +307,17 @@ public class ConsoleRenderer
         {
             for (int i = 0; i < pots.Count; i++)
             {
-                var pot = pots[i];
+                IPot pot = pots[i];
                 string potName = i == 0 ? "Main Pot" : $"Side Pot {i}";
 
-                var eligibleWinners = winners.Where(w => pot.Contributions.ContainsKey(w)).ToList();
+                List<IPlayer> eligibleWinners = winners.Where(w => pot.Contributions.ContainsKey(w)).ToList();
                 if (eligibleWinners.Count == 0) continue;
 
                 HandRank handRank = _controller.GetPlayerHandRank(eligibleWinners[0]);
                 int share = pot.TotalChips / eligibleWinners.Count;
 
                 DrawLine($" {potName} ({pot.TotalChips} Chips):", ConsoleColor.Cyan);
-                foreach (var winner in eligibleWinners)
+                foreach (IPlayer winner in eligibleWinners)
                 {
                     DrawLine($"    → {winner.Name} memenangkan {share} Chips dengan {handRank}", ConsoleColor.Green);
                 }
