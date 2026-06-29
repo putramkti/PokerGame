@@ -77,7 +77,7 @@ public class InputHandler
     private void ProcessRaiseAction(IPlayer player)
     {
         int minRaise = _controller.GetMinRaise();
-        int maxChips = _controller.GetPlayerTotalChips(player) + _controller.GetPlayerCurrentBet(player);
+        int maxChips = _controller.GetPlayerChips(player) + _controller.GetPlayerCurrentBet(player);
         int raiseTargetAmount = 0;
 
         while (raiseTargetAmount < minRaise || raiseTargetAmount > maxChips)

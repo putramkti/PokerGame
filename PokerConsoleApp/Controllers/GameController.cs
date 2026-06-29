@@ -77,7 +77,7 @@ public class GameController
         {
             throw new InvalidOperationException("Belum bisa mulai hand baru, hand sebelumnya belum selesai");
         }
-
+        //TODO: tambahin if else
         EliminateBustedPlayers();
 
         if (IsGameOver())
@@ -150,13 +150,13 @@ public class GameController
     public int GetPlayerChips(IPlayer player)
     {
         //TODO: cek lagi nampaknya sama dengan player total
-        return _chips[player];
-    }
-
-    public int GetPlayerTotalChips(IPlayer player)
-    {
         return _chips.ContainsKey(player) ? _chips[player] : 0;
     }
+
+    // public int GetPlayerTotalChips(IPlayer player)
+    // {
+    //     return _chips.ContainsKey(player) ? _chips[player] : 0;
+    // }
 
     public int GetPlayerCurrentBet(IPlayer player)
     {
@@ -198,7 +198,7 @@ public class GameController
         }
 
         int callAmount = GetCallAmount(player);
-        int playerChips = GetPlayerTotalChips(player);
+        int playerChips = GetPlayerChips(player);
 
         actions.Add(BettingAction.Fold);
 
@@ -243,6 +243,7 @@ public class GameController
 
     public void Fold(IPlayer player)
     {
+        //TODO: Kasih validasi playernya == _curernt player ngga (disemua aksi)
         player.Status = PlayerStatus.Folded;
         NextPlayer();
     }
@@ -345,6 +346,7 @@ public class GameController
         _currentPlayerIndex = GetNextActivePlayerIndex(_lastRaiserIndex);
         RunBettingRound();
 
+        // TODO: ceklagi soalnya di dalam run bettinground -> transition next round sudah ada event invoke
         OnRoundChanged?.Invoke(_currentRound);
     }
 
@@ -366,7 +368,6 @@ public class GameController
 
     private void PostBlinds()
     {
-        // TODO: tambahkan skip bust/fold player
         int sbIndex = GetNextActivePlayerIndex(_dealerIndex);
         int bbIndex = GetNextActivePlayerIndex(sbIndex);
 
@@ -431,7 +432,6 @@ public class GameController
 
     private void DealFlop()
     {
-        //TODO: coba riset lagi apakah perlu kartunya di burn
         DealCard();
 
         _table.CommunityCards.Add(DealCard());
@@ -441,7 +441,6 @@ public class GameController
 
     private void DealTurn()
     {
-        //TODO: coba riset lagi apakah perlu kartunya di burn
         DealCard();
 
         _table.CommunityCards.Add(DealCard());
@@ -449,7 +448,6 @@ public class GameController
 
     private void DealRiver()
     {
-        //TODO: coba riset lagi apakah perlu kartunya di burn
         DealCard();
 
         _table.CommunityCards.Add(DealCard());
@@ -475,10 +473,6 @@ public class GameController
         }
 
         _currentPlayerIndex = GetNextActivePlayerIndex(_currentPlayerIndex);
-        //     do
-        //     {
-        //         _currentPlayerIndex = (_currentPlayerIndex + 1) % _players.Count();
-        //     } while (_players[_currentPlayerIndex].Status != PlayerStatus.Active);
     }
 
     private bool IsBettingRoundOver()
@@ -781,14 +775,6 @@ public class GameController
 
     private void CreateSidePots()
     {
-        // int totalCollected = _currentBets.Values.Sum();
-        // if (totalCollected > 0)
-        // {
-        //     IPot pot = new Pot();
-        //     pot.TotalChips = totalCollected;
-        //     _pots.Add(pot);
-        // }
-
         Dictionary<IPlayer, int> grandTotal = _players.ToDictionary(p => p, p => 0);
 
         foreach (IPot pot in _pots)
