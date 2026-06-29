@@ -243,7 +243,6 @@ public class GameController
 
     public void Fold(IPlayer player)
     {
-        //TODO: Kasih validasi playernya == _curernt player ngga (disemua aksi)
         player.Status = PlayerStatus.Folded;
         NextPlayer();
     }
@@ -289,8 +288,7 @@ public class GameController
         _currentHighestbet = amount;
         _lastRaiserIndex = _currentPlayerIndex;
 
-        //TODO:  perlu di -1 ngga tolong dicek lagi nanti
-        _playersToAct = _players.Count(p => p.Status == PlayerStatus.Active) - 1;
+        _playersToAct = _players.Count(p => p.Status == PlayerStatus.Active);
 
         if (_chips[player] == 0)
         {
@@ -309,8 +307,7 @@ public class GameController
             _lastRaiseAmount = allInAmount - _currentHighestbet;
             _currentHighestbet = allInAmount;
             _lastRaiserIndex = _currentPlayerIndex;
-            //TODO:  perlu di -1 ngga tolong dicek lagi nanti
-            _playersToAct = _players.Count(p => p.Status == PlayerStatus.Active) - 1;
+            _playersToAct = _players.Count(p => p.Status == PlayerStatus.Active);
         }
 
         _currentBets[player] = allInAmount;
@@ -345,9 +342,6 @@ public class GameController
 
         _currentPlayerIndex = GetNextActivePlayerIndex(_lastRaiserIndex);
         RunBettingRound();
-
-        // TODO: ceklagi soalnya di dalam run bettinground -> transition next round sudah ada event invoke
-        OnRoundChanged?.Invoke(_currentRound);
     }
 
     private void ShuffleDeck()
@@ -651,7 +645,7 @@ public class GameController
 
         List<ICard> orderedCards = sevenCards.OrderByDescending(c => c.Rank).ToList();
 
-        List<IGrouping<CardRank, ICard>>  rankGroups = orderedCards.GroupBy(c => c.Rank).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Key).ToList();
+        List<IGrouping<CardRank, ICard>> rankGroups = orderedCards.GroupBy(c => c.Rank).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Key).ToList();
         IGrouping<CardSuit, ICard>? suitGroups = orderedCards.GroupBy(c => c.Suit).Where(g => g.Count() >= 5).FirstOrDefault();
 
         // TODO: Check code qualitynya
@@ -897,8 +891,8 @@ public class GameController
             }
             allWinners.AddRange(orderedWinners);
         }
-        
-        if(allWinners.Count > 0)
+
+        if (allWinners.Count > 0)
         {
             OnHandWinnersDecided?.Invoke(allWinners);
         }
