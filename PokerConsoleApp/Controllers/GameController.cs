@@ -9,7 +9,7 @@ namespace PokerConsoleApp.Controllers;
 public class GameController
 {
     // private Dictionary<IPlayer, List<IChip>> _chips;
-    private Dictionary<IPlayer, int> _chips;
+    private Dictionary<IPlayer, IChip> _chips;
     private Dictionary<IPlayer, List<ICard>> _holeCards;
     private Dictionary<IPlayer, int> _currentBets;
     private List<IPlayer> _players;
@@ -38,7 +38,7 @@ public class GameController
 
         _players = new List<IPlayer>();
         // _chips = new Dictionary<IPlayer, List<IChip>>();
-        _chips = new Dictionary<IPlayer, int>();
+        _chips = new Dictionary<IPlayer, IChip>();
         _holeCards = new Dictionary<IPlayer, List<ICard>>();
         _currentBets = new Dictionary<IPlayer, int>();
         _pots = new List<IPot>();
@@ -55,8 +55,7 @@ public class GameController
         IPlayer newPlayer = new Player(name) { Status = PlayerStatus.Active };
         _players.Add(newPlayer);
 
-        // IChip newChips = new Chip(chips);
-        _chips[newPlayer] = chips;
+        _chips[newPlayer] = new Chip(chips);
         _holeCards[newPlayer] = new List<ICard>();
         _currentBets[newPlayer] = 0;
     }
@@ -150,7 +149,7 @@ public class GameController
     public int GetPlayerChips(IPlayer player)
     {
         //TODO: cek lagi nampaknya sama dengan player total
-        return _chips.ContainsKey(player) ? _chips[player] : 0;
+        return _chips.ContainsKey(player) ? _chips[player].Amount : 0;
     }
 
     // public int GetPlayerTotalChips(IPlayer player)
@@ -256,12 +255,12 @@ public class GameController
     {
         int callAmount = GetCallAmount(player);
 
-        int chipsToBet = Math.Min(callAmount, _chips[player]);
+        int chipsToBet = Math.Min(callAmount, _chips[player].Amount);
 
-        _chips[player] -= chipsToBet;
+        _chips[player].Amount -= chipsToBet;
         _currentBets[player] += chipsToBet;
 
-        if (_chips[player] == 0)
+        if (_chips[player].Amount == 0)
         {
             player.Status = PlayerStatus.AllIn;
         }
@@ -272,7 +271,7 @@ public class GameController
     public void Raise(IPlayer player, int amount)
     {
         int minRaise = _currentHighestbet + _lastRaiseAmount;
-        int maxBet = _chips[player] + _currentBets[player];
+        int maxBet = _chips[player].Amount + _currentBets[player];
 
         if (amount < minRaise)
             throw new InvalidOperationException($"Raise minimal adalah {minRaise}");
@@ -281,7 +280,7 @@ public class GameController
 
         int additionalBet = amount - _currentBets[player];
 
-        _chips[player] -= additionalBet;
+        _chips[player].Amount -= additionalBet;
         _currentBets[player] = amount;
 
         _lastRaiseAmount = amount - _currentHighestbet;
@@ -290,7 +289,7 @@ public class GameController
 
         _playersToAct = _players.Count(p => p.Status == PlayerStatus.Active);
 
-        if (_chips[player] == 0)
+        if (_chips[player].Amount == 0)
         {
             player.Status = PlayerStatus.AllIn;
         }
@@ -300,7 +299,7 @@ public class GameController
 
     public void AllIn(IPlayer player)
     {
-        int allInAmount = _chips[player] + _currentBets[player];
+        int allInAmount = _chips[player].Amount + _currentBets[player];
 
         if (allInAmount > _currentHighestbet)
         {
@@ -311,7 +310,7 @@ public class GameController
         }
 
         _currentBets[player] = allInAmount;
-        _chips[player] = 0;
+        _chips[player].Amount = 0;
         player.Status = PlayerStatus.AllIn;
 
         NextPlayer();
@@ -366,16 +365,16 @@ public class GameController
         int bbIndex = GetNextActivePlayerIndex(sbIndex);
 
         IPlayer sbPlayer = _players[sbIndex];
-        int sbTax = Math.Min(_smallBlind, _chips[sbPlayer]);
-        _chips[sbPlayer] -= sbTax;
+        int sbTax = Math.Min(_smallBlind, _chips[sbPlayer].Amount);
+        _chips[sbPlayer].Amount -= sbTax;
         _currentBets[sbPlayer] = sbTax;
-        if (_chips[sbPlayer] == 0) sbPlayer.Status = PlayerStatus.AllIn;
+        if (_chips[sbPlayer].Amount == 0) sbPlayer.Status = PlayerStatus.AllIn;
 
         IPlayer bbPlayer = _players[bbIndex];
-        int bbTax = Math.Min(_bigBlind, _chips[bbPlayer]);
-        _chips[bbPlayer] -= bbTax;
+        int bbTax = Math.Min(_bigBlind, _chips[bbPlayer].Amount);
+        _chips[bbPlayer].Amount -= bbTax;
         _currentBets[bbPlayer] = bbTax;
-        if (_chips[bbPlayer] == 0) bbPlayer.Status = PlayerStatus.AllIn;
+        if (_chips[bbPlayer].Amount == 0) bbPlayer.Status = PlayerStatus.AllIn;
 
         // TODO: CEK apakah sesuai aturan resmi poker?
 
@@ -577,7 +576,7 @@ public class GameController
         if (survivors.Count == 1)
         {
             int uncollected = _currentBets.Values.Sum();
-            _chips[survivors[0]] += _pots.Sum(p => p.TotalChips) + uncollected;
+            _chips[survivors[0]].Amount += _pots.Sum(p => p.TotalChips) + uncollected;
             // _pots.Clear();
 
             foreach (IPlayer key in _currentBets.Keys.ToList())
@@ -887,7 +886,7 @@ public class GameController
             for (int i = 0; i < orderedWinners.Count; i++)
             {
                 int amount = share + (i < remainder ? 1 : 0);
-                _chips[orderedWinners[i]] += amount;
+                _chips[orderedWinners[i]].Amount += amount;
             }
             allWinners.AddRange(orderedWinners);
         }
@@ -916,7 +915,7 @@ public class GameController
     {
         foreach (IPlayer player in _players)
         {
-            if (_chips[player] <= 0)
+            if (_chips[player].Amount <= 0)
             {
                 player.Status = PlayerStatus.Bust;
             }
