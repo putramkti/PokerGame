@@ -5,16 +5,9 @@ namespace PokerConsoleApp.Models;
 
 public class Deck : IDeck
 {
-    public Deck()
+    public Deck(List<ICard> cards)
     {
-        Cards = new List<ICard>();
-        foreach(CardSuit suit in Enum.GetValues<CardSuit>())
-        {
-            foreach (CardRank rank in Enum.GetValues<CardRank>())
-            {
-                Cards.Add(new Card(suit, rank));
-            }
-        }
+        Cards = cards;
     }
 
 

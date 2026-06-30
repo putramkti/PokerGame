@@ -31,20 +31,19 @@ public class GameController
     public Action<GameRound>? OnRoundChanged;
     public Action<List<IPlayer>>? OnHandWinnersDecided;
 
-    public GameController(int smallBlind, int bigBlind)
+    public GameController(int smallBlind, int bigBlind, List<IPlayer> players, Dictionary<IPlayer, IChip> chips, Dictionary<IPlayer, List<ICard>> holeCards, Dictionary<IPlayer, int> currentBet, List<IPot> pot, IDeck deck, ITable table)
     {
         _smallBlind = smallBlind;
         _bigBlind = bigBlind;
 
-        _players = new List<IPlayer>();
-        // _chips = new Dictionary<IPlayer, List<IChip>>();
-        _chips = new Dictionary<IPlayer, IChip>();
-        _holeCards = new Dictionary<IPlayer, List<ICard>>();
-        _currentBets = new Dictionary<IPlayer, int>();
-        _pots = new List<IPot>();
+        _players = players;
+        _chips = chips;
+        _holeCards = holeCards;
+        _currentBets = currentBet;
+        _pots = pot;
 
-        _deck = new Deck();
-        _table = new Table();
+        _deck = deck;
+        _table = table;
 
         _gameState = GameState.WaitingForPlayers;
         _currentRound = GameRound.PreFlop;
@@ -311,19 +310,22 @@ public class GameController
         _currentRound = GameRound.PreFlop;
         _gameState = GameState.InProgress;
 
-        _table.CommunityCards.Clear();
+        // _table.CommunityCards.Clear();
         _pots.Clear();
         _pots.Add(new Pot());
 
         foreach (IPlayer player in _players)
         {
             _currentBets[player] = 0;
-            _holeCards[player].Clear();
+            // _holeCards[player].Clear();
             if (player.Status != PlayerStatus.Bust)
             {
                 player.Status = PlayerStatus.Active;
             }
         }
+
+        CollectCommunityCardsToDeck();
+        CollectHoleCardsToDeck();
 
         ShuffleDeck();
         PostBlinds();
@@ -333,9 +335,29 @@ public class GameController
         RunBettingRound();
     }
 
+    private void CollectCommunityCardsToDeck()
+    {
+        foreach (ICard card in _table.CommunityCards)
+        {
+            _deck.Cards.Add(card);
+        }
+        _table.CommunityCards.Clear();
+    }
+
+    private void CollectHoleCardsToDeck()
+    {
+        foreach (IPlayer player in _players)
+        {
+            foreach (ICard card in _holeCards[player])
+            {
+                _deck.Cards.Add(card);
+            }
+            _holeCards[player].Clear();
+        }
+    }
     private void ShuffleDeck()
     {
-        _deck = new Deck();
+        // _deck = new Deck();
         Random random = new Random();
         _deck.Cards = _deck.Cards.OrderBy(c => random.Next()).ToList();
 
