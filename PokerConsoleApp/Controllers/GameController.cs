@@ -375,10 +375,8 @@ public class GameController
         _currentBets[bbPlayer] = bbTax;
         if (_chips[bbPlayer].Amount == 0) bbPlayer.Status = PlayerStatus.AllIn;
 
-        // TODO: CEK apakah sesuai aturan resmi poker?
-
         _currentHighestbet = Math.Max(sbTax, bbTax);
-        _lastRaiseAmount = _lastRaiseAmount = Math.Max(bbTax - sbTax, _bigBlind - _smallBlind);
+        _lastRaiseAmount = Math.Max(bbTax - sbTax, _bigBlind - _smallBlind);
         _lastRaiserIndex = bbIndex;
 
         if (_lastRaiseAmount <= 0)
