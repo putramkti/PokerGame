@@ -18,6 +18,204 @@ public class ConsoleRenderer
         _controller = controller;
     }
 
+
+    public void RunGame(int smallBlind, int bigBlind)
+    {
+        try
+        {
+            _controller.OnRoundChanged += HandleRoundChanged;
+            _controller.OnHandWinnersDecided += HandleHandWinners;
+
+            ShowSetupBanner();
+
+            int playerCount = AskPlayerCount();
+            RegisterPlayers(playerCount);
+
+            ShowSetupConfirmation(smallBlind, bigBlind);
+            Console.ReadLine();
+
+            _controller.StartGame();
+
+            while (_controller.GetGameState() != GameState.GameOver)
+            {
+                if (_controller.GetGameState() == GameState.HandComplete)
+                {
+                    _controller.StartNexthand();
+                    continue;
+                }
+
+                IPlayer activePlayer = _controller.GetCurrentPlayer();
+                ShowPlayerTransitionScreen(activePlayer.Name);
+                WaitForEnter();
+
+                DrawPlayerView(activePlayer);
+                ProcessTurn(activePlayer);
+            }
+        }
+        finally
+        {
+            _controller.OnRoundChanged -= HandleRoundChanged;
+            _controller.OnHandWinnersDecided -= HandleHandWinners;
+        }
+
+        ShowGameOver(_controller.GetGameWinner());
+    }
+
+    private void HandleRoundChanged(GameRound round)
+    {
+        if (round == GameRound.PreFlop || round == GameRound.Showdown) return;
+
+        ShowRoundTransition(round, _controller.GetCommunityCards());
+        WaitForEnter();
+    }
+
+    private void HandleHandWinners(List<IPlayer> winners)
+    {
+        List<IPot> pots = new List<IPot>();
+        IPot? mainPot = _controller.GetMainPot();
+        if (mainPot != null) pots.Add(mainPot);
+        pots.AddRange(_controller.GetSidePots());
+
+        ShowHandResult(winners, pots);
+        WaitForEnter();
+    }
+
+    private int AskPlayerCount()
+    {
+        int playerCount = 0;
+        while (playerCount < 2 || playerCount > 10)
+        {
+            Console.Write("\nMasukkan jumlah pemain (2-10): ");
+            string input = Console.ReadLine() ?? string.Empty;
+
+            if (!int.TryParse(input, out playerCount) || playerCount < 2 || playerCount > 10)
+            {
+                Console.WriteLine("Jumlah pemain harus antara 2-10!");
+            }
+        }
+        return playerCount;
+    }
+
+    private void RegisterPlayers(int playerCount)
+    {
+        List<string> registeredNames = new List<string>();
+
+        for (int i = 1; i <= playerCount; i++)
+        {
+            Console.WriteLine($"\n--- Pemain {i} ---");
+
+            string name = "";
+            bool validName = false;
+
+            while (!validName)
+            {
+                Console.Write($"Masukkan nama pemain {i}: ");
+                name = Console.ReadLine()?.Trim() ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    Console.WriteLine("Nama tidak boleh kosong!");
+                    continue;
+                }
+
+                if (registeredNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine($"Nama '{name}' sudah digunakan! Pilih nama lain.");
+                    continue;
+                }
+
+                validName = true;
+            }
+
+            registeredNames.Add(name);
+            _controller.AddPlayer(name, 1000);
+        }
+    }
+
+    public void WaitForEnter(string message = "")
+    {
+        if (!string.IsNullOrEmpty(message))
+        {
+            Console.WriteLine(message);
+        }
+        Console.ReadLine();
+    }
+
+    public void ProcessTurn(IPlayer player)
+    {
+        List<BettingAction> availableActions = _controller.GetAvailableBettingAction(player);
+
+        int selectedIndex = -1;
+        while (selectedIndex < 0 || selectedIndex >= availableActions.Count)
+        {
+            string userInput = Console.ReadLine() ?? string.Empty;
+
+            if (int.TryParse(userInput, out int choiceNumber) && choiceNumber >= 1 && choiceNumber <= availableActions.Count)
+            {
+                selectedIndex = choiceNumber - 1;
+            }
+            else
+            {
+                Console.WriteLine("Input tidak valid! Masukkan angka yang tertera pada menu.");
+                Console.Write($"Ketik angka opsi (1-{availableActions.Count}): ");
+            }
+        }
+
+        BettingAction chosenAction = availableActions[selectedIndex];
+
+        switch (chosenAction)
+        {
+            case BettingAction.Fold:
+                _controller.Fold(player);
+                break;
+
+            case BettingAction.Check:
+                _controller.Check(player);
+                break;
+
+            case BettingAction.Call:
+                _controller.Call(player);
+                break;
+
+            case BettingAction.Raise:
+                ProcessRaiseAction(player);
+                break;
+
+            case BettingAction.AllIn:
+                _controller.AllIn(player);
+                break;
+        }
+    }
+
+    private void ProcessRaiseAction(IPlayer player)
+    {
+        int minRaise = _controller.GetMinRaise();
+        int maxChips = _controller.GetPlayerChips(player) + _controller.GetPlayerCurrentBet(player);
+        int raiseTargetAmount = 0;
+
+        while (raiseTargetAmount < minRaise || raiseTargetAmount > maxChips)
+        {
+            Console.Write($"Masukkan total taruhan baru Anda ({minRaise} - {maxChips}): ");
+            string userInput = Console.ReadLine() ?? string.Empty;
+
+            if (int.TryParse(userInput, out int inputAmount))
+            {
+                raiseTargetAmount = inputAmount;
+                if (raiseTargetAmount < minRaise)
+                    Console.WriteLine($"Nominal terlalu kecil! Minimal Raise adalah {minRaise}.");
+                else if (raiseTargetAmount > maxChips)
+                    Console.WriteLine("Chip Anda tidak mencukupi untuk melakukan Raise.");
+            }
+            else
+            {
+                Console.WriteLine("Masukkan format angka yang valid!");
+            }
+        }
+
+        _controller.Raise(player, raiseTargetAmount);
+    }
+
+
     private void SetBorderColor() => Console.ForegroundColor = ConsoleColor.DarkCyan;
 
     private void DrawTop()
@@ -263,19 +461,45 @@ public class ConsoleRenderer
         Console.Clear();
         DrawTop();
         DrawLine();
-        DrawCenteredLine("*** PEMENANG ***", ConsoleColor.Green);
+        DrawCenteredLine("*** HASIL HAND ***", ConsoleColor.Yellow);
         DrawLine();
 
+        // Tampilkan semua pemain aktif, urutkan berdasarkan hand rank
+        List<IPlayer> activePlayers = _controller.GetAllPlayers()
+            .Where(p => p.Status != PlayerStatus.Folded && p.Status != PlayerStatus.Bust)
+            .ToList();
+
+        // Urutkan berdasarkan hand rank (tertinggi ke terendah)
+        List<IPlayer> sortedPlayers = activePlayers
+            .OrderByDescending(p => _controller.GetPlayerHandRank(p))
+            .ToList();
+
+        // Tampilkan setiap pemain
+        foreach (IPlayer player in sortedPlayers)
+        {
+            HandRank handRank = _controller.GetPlayerHandRank(player);
+            List<ICard> bestFive = _controller.GetPlayerBestFiveCards(player);
+
+            string cardsText = string.Join(" ", bestFive.Select(c => c.ToString()));
+            bool isWinner = winners.Contains(player);
+
+            string marker = isWinner ? "★" : " ";
+            ConsoleColor color = isWinner ? ConsoleColor.Green : ConsoleColor.White;
+
+            DrawLine($" {marker} {player.Name,-12} {handRank,-15} {cardsText}", color);
+        }
+
+        DrawDivider();
+
+        // Tampilkan pemenang dan pot
         if (pots.Count == 1)
         {
             IPot pot = pots[0];
-            HandRank handRank = _controller.GetPlayerHandRank(winners[0]);
             int share = pot.TotalChips / winners.Count;
 
             foreach (IPlayer winner in winners)
             {
                 DrawCenteredLine($"{winner.Name} memenangkan {share} Chips!", ConsoleColor.Green);
-                DrawCenteredLine($"dengan {handRank}");
             }
         }
         else
@@ -285,16 +509,18 @@ public class ConsoleRenderer
                 IPot pot = pots[i];
                 string potName = i == 0 ? "Main Pot" : $"Side Pot {i}";
 
-                List<IPlayer> eligibleWinners = winners.Where(w => pot.Contributions.ContainsKey(w)).ToList();
+                List<IPlayer> eligibleWinners = winners
+                    .Where(w => pot.Contributions.ContainsKey(w))
+                    .Distinct()
+                    .ToList();
                 if (eligibleWinners.Count == 0) continue;
 
-                HandRank handRank = _controller.GetPlayerHandRank(eligibleWinners[0]);
                 int share = pot.TotalChips / eligibleWinners.Count;
 
                 DrawLine($" {potName} ({pot.TotalChips} Chips):", ConsoleColor.Cyan);
                 foreach (IPlayer winner in eligibleWinners)
                 {
-                    DrawLine($"    → {winner.Name} memenangkan {share} Chips dengan {handRank}", ConsoleColor.Green);
+                    DrawLine($"    → {winner.Name} memenangkan {share} Chips", ConsoleColor.Green);
                 }
             }
         }
