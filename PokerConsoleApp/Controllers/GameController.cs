@@ -115,6 +115,13 @@ public class GameController
         return EvaluateHand(player);
     }
 
+    public List<ICard> GetPlayerBestFiveCards(IPlayer player)
+    {
+        List<ICard> allSevenCards = _holeCards[player].Concat(_table.CommunityCards).ToList();
+        HandEvaluation result = GetBestHandResult(player, allSevenCards);
+        return result.BestFiveCards;
+    }
+
     public IPlayer GetCurrentPlayer()
     {
         return _players[_currentPlayerIndex];
@@ -199,7 +206,9 @@ public class GameController
             actions.Add(BettingAction.Call);
         }
 
-        if (playerChips > callAmount)
+        int minRaise = GetMinRaise();
+        bool canRaise = playerChips + GetPlayerCurrentBet(player) >= minRaise;
+        if (canRaise)
         {
             actions.Add(BettingAction.Raise);
         }
@@ -365,12 +374,15 @@ public class GameController
 
     private void RotateDealer()
     {
-        bool isDealerBust = _players[_dealerIndex].Status == PlayerStatus.Bust;
+        bool isDealerBust = true;
         do
         {
             _dealerIndex = (_dealerIndex + 1) % _players.Count();
+            isDealerBust = _players[_dealerIndex].Status == PlayerStatus.Bust;
         } while (isDealerBust);
     }
+
+    
 
     private void PostBlinds()
     {
@@ -414,11 +426,12 @@ public class GameController
     {
         int nextactivePlayerIndex = (currentIndex + 1) % _players.Count;
         int start = nextactivePlayerIndex;
-
         bool isnotActive = _players[nextactivePlayerIndex].Status != PlayerStatus.Active;
+
         while (isnotActive)
         {
             nextactivePlayerIndex = (nextactivePlayerIndex + 1) % _players.Count;
+            isnotActive = _players[nextactivePlayerIndex].Status != PlayerStatus.Active;
         }
         return nextactivePlayerIndex;
     }
@@ -924,7 +937,8 @@ public class GameController
 
         if (allWinners.Count > 0)
         {
-            OnHandWinnersDecided?.Invoke(allWinners);
+            List<IPlayer> uniqueWinners = allWinners.Distinct().ToList();
+            OnHandWinnersDecided?.Invoke(uniqueWinners);
         }
     }
 
@@ -941,6 +955,7 @@ public class GameController
             {
                 return currentIndex;
             }
+            isEliminatedPlayer = _players[next].Status == PlayerStatus.Bust || _players[next].Status == PlayerStatus.Folded;
         }
         return next;
     }
