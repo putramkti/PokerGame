@@ -48,17 +48,14 @@ public class InputHandler
         {
             case BettingAction.Fold:
                 _controller.Fold(player);
-                // Console.WriteLine($"{player.Name} memilih FOLD.");
                 break;
 
             case BettingAction.Check:
                 _controller.Check(player);
-                // Console.WriteLine($"{player.Name} memilih CHECK.");
                 break;
 
             case BettingAction.Call:
                 _controller.Call(player);
-                // Console.WriteLine($"{player.Name} memilih CALL.");
                 break;
 
             case BettingAction.Raise:
@@ -67,11 +64,9 @@ public class InputHandler
 
             case BettingAction.AllIn:
                 _controller.AllIn(player);
-                // Console.WriteLine($"{player.Name} memilih ALL-IN!");
                 break;
         }
         
-        // WaitForEnter("Tekan ENTER untuk melanjutkan...");
     }
 
     private void ProcessRaiseAction(IPlayer player)
@@ -100,6 +95,5 @@ public class InputHandler
         }
 
         _controller.Raise(player, raiseTargetAmount);
-        // Console.WriteLine($"{player.Name} melakukan RAISE menjadi total {raiseTargetAmount} chips.");
     }
 }

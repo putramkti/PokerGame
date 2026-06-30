@@ -377,9 +377,15 @@ public class GameController
 
         // TODO: CEK apakah sesuai aturan resmi poker?
 
-        _currentHighestbet = bbTax < sbTax ? bbTax : _bigBlind;
-        _lastRaiseAmount = _bigBlind;
+        _currentHighestbet = Math.Max(sbTax, bbTax);
+        _lastRaiseAmount = _lastRaiseAmount = Math.Max(bbTax - sbTax, _bigBlind - _smallBlind);
         _lastRaiserIndex = bbIndex;
+
+        if (_lastRaiseAmount <= 0)
+        {
+            _lastRaiseAmount = _bigBlind - _smallBlind;
+        }
+    
 
         _playersToAct = _players.Count(p => p.Status == PlayerStatus.Active);
     }
@@ -491,7 +497,6 @@ public class GameController
 
     private void CollectBetsToPot()
     {
-        // TODO: nanti cek lagi apakah sudah ada fungsi untuk kapan harus create side pots
         CreateSidePots();
 
         foreach (IPlayer key in _currentBets.Keys.ToList())

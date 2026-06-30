@@ -12,15 +12,14 @@ InputHandler inputHandler = new InputHandler(gameController);
 
 void HandleRoundChanged(GameRound round)
 {
-    if (round == GameRound.PreFlop || round == GameRound.Showdown) return; 
+    if (round == GameRound.PreFlop || round == GameRound.Showdown) return;
 
     consoleRenderer.ShowRoundTransition(round, gameController.GetCommunityCards());
     inputHandler.WaitForEnter();
 }
 
 void HandleHandWinners(List<IPlayer> winners)
-{  
-    // Tampilkan hand result
+{
     List<IPot> pots = new List<IPot>();
     IPot? mainPot = gameController.GetMainPot();
     if (mainPot != null) pots.Add(mainPot);
@@ -91,53 +90,9 @@ try
 
     gameController.StartGame();
 
-    GameRound previousRound = gameController.GetCurrentRound();
 
     while (gameController.GetGameState() != GameState.GameOver)
     {
-        // if (gameController.GetGameState() == GameState.HandComplete)
-        // {
-        //     var allPlayers = gameController.GetAllPlayers();
-        //     var activePlayers = allPlayers.Where(p => p.Status != PlayerStatus.Folded && p.Status != PlayerStatus.Bust).ToList();
-        //     var communityCards = gameController.GetCommunityCards();
-
-        //     if (activePlayers.Count > 1)
-        //     {
-        //         consoleRenderer.ShowShowdown(activePlayers, communityCards);
-        //         inputHandler.WaitForEnter();
-        //     }
-
-        //     var winners = gameController.GetHandWinners();
-        //     var pots = new List<IPot>();
-        //     var mainPot = gameController.GetMainPot();
-        //     if (mainPot != null) pots.Add(mainPot);
-        //     pots.AddRange(gameController.GetSidePots());
-
-        //     consoleRenderer.ShowHandResult(winners, pots);
-        //     inputHandler.WaitForEnter();
-
-        //     previousRound = GameRound.PreFlop;
-
-        //     gameController.StartNexthand();
-        //     continue;
-        // }
-
-        // IPlayer activePlayer = gameController.GetCurrentPlayer();
-        // consoleRenderer.ShowPlayerTransitionScreen(activePlayer.Name);
-        // inputHandler.WaitForEnter();
-
-        // GameRound currentRound = gameController.GetCurrentRound();
-        // if (currentRound != previousRound && currentRound != GameRound.PreFlop)
-        // {
-        //     consoleRenderer.ShowRoundTransition(currentRound, gameController.GetCommunityCards());
-        //     inputHandler.WaitForEnter();
-        //     previousRound = currentRound;
-        // }
-
-        // consoleRenderer.DrawPlayerView(activePlayer);
-
-        // inputHandler.ProcessTurn(activePlayer);
-
         if (gameController.GetGameState() == GameState.HandComplete)
         {
             gameController.StartNexthand();
