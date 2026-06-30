@@ -72,11 +72,6 @@ public class GameController
 
     public void StartNexthand()
     {
-        if (_gameState != GameState.HandComplete && _gameState != GameState.InProgress)
-        {
-            throw new InvalidOperationException("Belum bisa mulai hand baru, hand sebelumnya belum selesai");
-        }
-        
         EliminateBustedPlayers();
 
         if (IsGameOver())
@@ -151,11 +146,6 @@ public class GameController
         return _chips.ContainsKey(player) ? _chips[player].Amount : 0;
     }
 
-    // public int GetPlayerTotalChips(IPlayer player)
-    // {
-    //     return _chips.ContainsKey(player) ? _chips[player] : 0;
-    // }
-
     public int GetPlayerCurrentBet(IPlayer player)
     {
         return _currentBets.ContainsKey(player) ? _currentBets[player] : 0;
@@ -190,7 +180,8 @@ public class GameController
     {
         List<BettingAction> actions = new List<BettingAction>();
 
-        if (player != GetCurrentPlayer() || player.Status != PlayerStatus.Active)
+        bool isNotCurrentPlayerTurn = player != GetCurrentPlayer() || player.Status != PlayerStatus.Active;
+        if (isNotCurrentPlayerTurn)
         {
             return actions;
         }
@@ -259,7 +250,9 @@ public class GameController
         _chips[player].Amount -= chipsToBet;
         _currentBets[player] += chipsToBet;
 
-        if (_chips[player].Amount == 0)
+        bool isPlayerAllIn = _chips[player].Amount == 0;
+
+        if (isPlayerAllIn)
         {
             player.Status = PlayerStatus.AllIn;
         }
@@ -272,11 +265,6 @@ public class GameController
         int minRaise = _currentHighestbet + _lastRaiseAmount;
         int maxBet = _chips[player].Amount + _currentBets[player];
 
-        if (amount < minRaise)
-            throw new InvalidOperationException($"Raise minimal adalah {minRaise}");
-        if (amount > maxBet)
-            throw new InvalidOperationException("Chips tidak cukup");
-
         int additionalBet = amount - _currentBets[player];
 
         _chips[player].Amount -= additionalBet;
@@ -288,7 +276,9 @@ public class GameController
 
         _playersToAct = _players.Count(p => p.Status == PlayerStatus.Active);
 
-        if (_chips[player].Amount == 0)
+        bool isPlayerAllIn = _chips[player].Amount == 0;
+
+        if (isPlayerAllIn)
         {
             player.Status = PlayerStatus.AllIn;
         }
@@ -300,7 +290,8 @@ public class GameController
     {
         int allInAmount = _chips[player].Amount + _currentBets[player];
 
-        if (allInAmount > _currentHighestbet)
+        bool isAllInRaise = allInAmount > _currentHighestbet;
+        if (isAllInRaise)
         {
             _lastRaiseAmount = allInAmount - _currentHighestbet;
             _currentHighestbet = allInAmount;
@@ -352,10 +343,11 @@ public class GameController
 
     private void RotateDealer()
     {
+        bool isDealerBust = _players[_dealerIndex].Status == PlayerStatus.Bust;
         do
         {
             _dealerIndex = (_dealerIndex + 1) % _players.Count();
-        } while (_players[_dealerIndex].Status == PlayerStatus.Bust);
+        } while (isDealerBust);
     }
 
     private void PostBlinds()
@@ -367,13 +359,21 @@ public class GameController
         int sbTax = Math.Min(_smallBlind, _chips[sbPlayer].Amount);
         _chips[sbPlayer].Amount -= sbTax;
         _currentBets[sbPlayer] = sbTax;
-        if (_chips[sbPlayer].Amount == 0) sbPlayer.Status = PlayerStatus.AllIn;
+
+        if (_chips[sbPlayer].Amount == 0)
+        {
+            sbPlayer.Status = PlayerStatus.AllIn;
+        }
 
         IPlayer bbPlayer = _players[bbIndex];
         int bbTax = Math.Min(_bigBlind, _chips[bbPlayer].Amount);
         _chips[bbPlayer].Amount -= bbTax;
         _currentBets[bbPlayer] = bbTax;
-        if (_chips[bbPlayer].Amount == 0) bbPlayer.Status = PlayerStatus.AllIn;
+
+        if (_chips[bbPlayer].Amount == 0)
+        {
+            bbPlayer.Status = PlayerStatus.AllIn;
+        }
 
         _currentHighestbet = Math.Max(sbTax, bbTax);
         _lastRaiseAmount = Math.Max(bbTax - sbTax, _bigBlind - _smallBlind);
@@ -383,7 +383,7 @@ public class GameController
         {
             _lastRaiseAmount = _bigBlind - _smallBlind;
         }
-    
+
 
         _playersToAct = _players.Count(p => p.Status == PlayerStatus.Active);
     }
@@ -392,13 +392,11 @@ public class GameController
     {
         int nextactivePlayerIndex = (currentIndex + 1) % _players.Count;
         int start = nextactivePlayerIndex;
-        while (_players[nextactivePlayerIndex].Status != PlayerStatus.Active)
+
+        bool isnotActive = _players[nextactivePlayerIndex].Status != PlayerStatus.Active;
+        while (isnotActive)
         {
             nextactivePlayerIndex = (nextactivePlayerIndex + 1) % _players.Count;
-            if (nextactivePlayerIndex == start)
-            {
-                throw new InvalidOperationException("Tidak ada pemain aktif!");
-            }
         }
         return nextactivePlayerIndex;
     }
@@ -416,11 +414,6 @@ public class GameController
 
     private ICard DealCard()
     {
-        if (_deck.Cards.Count == 0)
-        {
-            throw new InvalidOperationException("Kartu di deck habis!");
-        }
-
         ICard card = _deck.Cards[0];
         _deck.Cards.RemoveAt(0);
         return card;
@@ -505,16 +498,23 @@ public class GameController
 
     private void TransitionToNextRound()
     {
-        if (_players.Count(p => p.Status == PlayerStatus.Active) <= 1)
+        bool isOnlyOneActivePlayer = _players.Count(p => p.Status == PlayerStatus.Active) <= 1;
+        if (isOnlyOneActivePlayer)
         {
             while (_table.CommunityCards.Count < 5)
             {
                 if (_table.CommunityCards.Count == 0)
+                {
                     DealFlop();
+                }
                 else if (_table.CommunityCards.Count == 3)
+                {
                     DealTurn();
+                }
                 else if (_table.CommunityCards.Count == 4)
+                {
                     DealRiver();
+                }
             }
 
             RunShowdown();
@@ -646,16 +646,18 @@ public class GameController
         List<IGrouping<CardRank, ICard>> rankGroups = orderedCards.GroupBy(c => c.Rank).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Key).ToList();
         IGrouping<CardSuit, ICard>? suitGroups = orderedCards.GroupBy(c => c.Suit).Where(g => g.Count() >= 5).FirstOrDefault();
 
-        //flush(sama jenis kartuntya)
-        if (suitGroups != null)
+        bool isFlush = suitGroups != null;
+        if (isFlush)
         {
             List<ICard> flushCards = suitGroups.OrderByDescending(c => c.Rank).ToList();
 
             List<ICard> straightFlushCards = GetStraightSequence(flushCards);
 
-            if (straightFlushCards != null && straightFlushCards.Count > 0)
+            bool isStraightFlush = straightFlushCards != null && straightFlushCards.Count > 0;
+            if (isStraightFlush)
             {
-                if (straightFlushCards[0].Rank == CardRank.Ace)
+                bool isRoyalFlush = straightFlushCards[0].Rank == CardRank.Ace;
+                if (isRoyalFlush)
                 {
                     return new HandEvaluation(player, HandRank.RoyalFlush, straightFlushCards);
                 }
@@ -665,8 +667,8 @@ public class GameController
             return new HandEvaluation(player, HandRank.Flush, flushCards.Take(5).ToList());
         }
 
-        // four of a kind
-        if (rankGroups[0].Count() == 4)
+        bool isFourOfAKind = rankGroups[0].Count() == 4;
+        if (isFourOfAKind)
         {
             List<ICard> bestFive = rankGroups[0].ToList();
 
@@ -675,8 +677,8 @@ public class GameController
             return new HandEvaluation(player, HandRank.FourOfAKind, bestFive);
         }
 
-        // fullhouse (3kembar + 2lembar)
-        if (rankGroups[0].Count() == 3 && rankGroups.Count > 1 && rankGroups[1].Count() >= 2)
+        bool isFullHouse = rankGroups[0].Count() == 3 && rankGroups.Count > 1 && rankGroups[1].Count() >= 2;
+        if (isFullHouse)
         {
             List<ICard> bestFive = rankGroups[0].ToList();
 
@@ -684,15 +686,15 @@ public class GameController
             return new HandEvaluation(player, HandRank.FullHouse, bestFive);
         }
 
-        //straight
         List<ICard> straightCards = GetStraightSequence(orderedCards);
-        if (straightCards != null && straightCards.Count > 0)
+        bool isStraight = straightCards != null && straightCards.Count > 0;
+        if (isStraight)
         {
             return new HandEvaluation(player, HandRank.Straight, straightCards);
         }
 
-        // three of a kind
-        if (rankGroups[0].Count() == 3)
+        bool isThreeOfAKind = rankGroups[0].Count() == 3;
+        if (isThreeOfAKind)
         {
             List<ICard> bestFive = rankGroups[0].ToList();
 
@@ -701,8 +703,8 @@ public class GameController
             return new HandEvaluation(player, HandRank.ThreeOfAKind, bestFive);
         }
 
-        // two pair
-        if (rankGroups[0].Count() == 2 && rankGroups.Count > 1 && rankGroups[1].Count() == 2)
+        bool isTwoPair = rankGroups[0].Count() == 2 && rankGroups.Count > 1 && rankGroups[1].Count() == 2;
+        if (isTwoPair)
         {
             List<ICard> bestFive = rankGroups[0].ToList();
             bestFive.AddRange(rankGroups[1].ToList());
@@ -712,8 +714,8 @@ public class GameController
             return new HandEvaluation(player, HandRank.TwoPair, bestFive);
         }
 
-        // one pair
-        if (rankGroups[0].Count() == 2)
+        bool isOnePair = rankGroups[0].Count() == 2;
+        if (isOnePair)
         {
             List<ICard> bestFive = rankGroups[0].ToList();
 
@@ -742,12 +744,15 @@ public class GameController
             }
         }
 
-        //  Well straight
-        if (uniqueCards.Any(c => c.Rank == CardRank.Ace) &&
-            uniqueCards.Any(c => c.Rank == CardRank.Two) &&
-            uniqueCards.Any(c => c.Rank == CardRank.Three) &&
-            uniqueCards.Any(c => c.Rank == CardRank.Four) &&
-            uniqueCards.Any(c => c.Rank == CardRank.Five))
+        bool hasAce = uniqueCards.Any(c => c.Rank == CardRank.Ace);
+        bool hasTwo = uniqueCards.Any(c => c.Rank == CardRank.Two);
+        bool hasThree = uniqueCards.Any(c => c.Rank == CardRank.Three);
+        bool hasFour = uniqueCards.Any(c => c.Rank == CardRank.Four);
+        bool hasFive = uniqueCards.Any(c => c.Rank == CardRank.Five);
+
+        bool isWheelStraight = hasAce && hasTwo && hasThree && hasFour && hasFive;
+
+        if (isWheelStraight)
         {
             List<ICard> wheelCards = new List<ICard>()
             {
@@ -806,7 +811,9 @@ public class GameController
         foreach (int level in allInLevels)
         {
             int sliceSize = level - previousLevel;
-            if (sliceSize > 0 && eligible.Count > 0)
+            bool isSliceValid = sliceSize > 0 && eligible.Count > 0;
+
+            if (isSliceValid)
             {
                 IPot pot = new Pot();
 
@@ -843,16 +850,20 @@ public class GameController
     private void AwardPot()
     {
 
-        if (_pots.Count == 0) return;
+        if (_pots.Count == 0)
+        {
+            return;
+        }
         List<IPlayer> allWinners = new List<IPlayer>();
 
 
         foreach (IPot pot in _pots)
         {
+            bool IsEligiblePlayer(IPlayer p) => p.Status != PlayerStatus.Folded && p.Status != PlayerStatus.Bust;
             List<IPlayer> eligibleActive = pot.Contributions
                 .Where(kvp => kvp.Value > 0)
                 .Select(kvp => kvp.Key)
-                .Where(p => p.Status != PlayerStatus.Folded && p.Status != PlayerStatus.Bust)
+                .Where(IsEligiblePlayer)
                 .ToList();
 
             if (eligibleActive.Count == 0)
@@ -899,7 +910,9 @@ public class GameController
     {
         int next = (currentIndex + 1) % _players.Count;
         int start = next;
-        while (_players[next].Status == PlayerStatus.Bust || _players[next].Status == PlayerStatus.Folded)
+
+        bool isEliminatedPlayer = _players[next].Status == PlayerStatus.Bust || _players[next].Status == PlayerStatus.Folded;
+        while (isEliminatedPlayer)
         {
             next = (next + 1) % _players.Count;
             if (next == start)
