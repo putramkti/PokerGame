@@ -19,17 +19,21 @@ public class ConsoleRenderer
     }
 
 
-    public void RunGame(int smallBlind, int bigBlind)
+    public void RunGame()
     {
         try
         {
             _controller.OnRoundChanged += HandleRoundChanged;
             _controller.OnHandWinnersDecided += HandleHandWinners;
 
+
             ShowSetupBanner();
 
             int playerCount = AskPlayerCount();
             RegisterPlayers(playerCount);
+
+            int smallBlind = _controller.GetSmallBind();
+            int bigBlind = _controller.GetBigBlind();
 
             ShowSetupConfirmation(smallBlind, bigBlind);
             Console.ReadLine();
@@ -63,7 +67,10 @@ public class ConsoleRenderer
 
     private void HandleRoundChanged(GameRound round)
     {
-        if (round == GameRound.PreFlop || round == GameRound.Showdown) return;
+        if (round == GameRound.PreFlop || round == GameRound.Showdown)
+        {
+            return;
+        }
 
         ShowRoundTransition(round, _controller.GetCommunityCards());
         WaitForEnter();
@@ -73,7 +80,10 @@ public class ConsoleRenderer
     {
         List<IPot> pots = new List<IPot>();
         IPot? mainPot = _controller.GetMainPot();
-        if (mainPot != null) pots.Add(mainPot);
+        if (mainPot != null)
+        {
+            pots.Add(mainPot);
+        }
         pots.AddRange(_controller.GetSidePots());
 
         ShowHandResult(winners, pots);
@@ -202,9 +212,13 @@ public class ConsoleRenderer
             {
                 raiseTargetAmount = inputAmount;
                 if (raiseTargetAmount < minRaise)
+                {
                     Console.WriteLine($"Nominal terlalu kecil! Minimal Raise adalah {minRaise}.");
+                }
                 else if (raiseTargetAmount > maxChips)
+                {
                     Console.WriteLine("Chip Anda tidak mencukupi untuk melakukan Raise.");
+                }
             }
             else
             {
@@ -214,7 +228,6 @@ public class ConsoleRenderer
 
         _controller.Raise(player, raiseTargetAmount);
     }
-
 
     private void SetBorderColor() => Console.ForegroundColor = ConsoleColor.DarkCyan;
 
@@ -241,15 +254,24 @@ public class ConsoleRenderer
 
     private void DrawLine(string content = "", ConsoleColor? color = null)
     {
-        if (content.Length > Width) content = content.Substring(0, Width);
+        if (content.Length > Width)
+        {
+            content = content.Substring(0, Width);
+        }
 
         SetBorderColor();
         Console.Write("║");
         Console.ResetColor();
 
-        if (color.HasValue) Console.ForegroundColor = color.Value;
+        if (color.HasValue)
+        {
+            Console.ForegroundColor = color.Value;
+        }
         Console.Write(content.PadRight(Width));
-        if (color.HasValue) Console.ResetColor();
+        if (color.HasValue)
+        {
+            Console.ResetColor();
+        }
 
         SetBorderColor();
         Console.WriteLine("║");
@@ -258,14 +280,17 @@ public class ConsoleRenderer
 
     private void DrawCenteredLine(string content, ConsoleColor? color = null)
     {
-        if (content.Length > Width) content = content.Substring(0, Width);
+        if (content.Length > Width)
+        {
+            content = content.Substring(0, Width);
+        }
         int totalPad = Width - content.Length;
         int left = totalPad / 2;
         int right = totalPad - left;
         DrawLine(new string(' ', left) + content + new string(' ', right), color);
     }
 
-    private void DrawCardsLine(string label, IEnumerable<ICard>? cards, string emptyText = "[Belum ada kartu]")
+    private void DrawCardsLine(string label, IEnumerable<ICard>? cards, string emptyText = "[ ]")
     {
         List<ICard> cardList = cards?.ToList() ?? new List<ICard>();
 
@@ -327,7 +352,7 @@ public class ConsoleRenderer
 
         foreach (IPlayer p in players)
         {
-            DrawLine($"   • {p.Name,-20} : {_controller.GetPlayerChips(p)} chips");
+            DrawLine($"   • {p.Name,-12} : {_controller.GetPlayerChips(p)} chips");
         }
 
         DrawLine();
@@ -349,61 +374,213 @@ public class ConsoleRenderer
         DrawBottom();
     }
 
+    private const int TableWidth = 90;
+    private const int SeatWidth = 17;
+    private const int SeatsPerRow = 5;
+
     public void DrawPlayerView(IPlayer currentPlayer)
     {
         Console.Clear();
 
-        List<IPot> sidePots = _controller.GetSidePots();
-        IPot? mainPot = _controller.GetMainPot();
+        List<IPlayer> allPlayers = _controller.GetAllPlayers();
+        IPlayer dealer = _controller.GetDealer();
 
+        int topCount = (allPlayers.Count + 1) / 2;
+        List<IPlayer> topRow = allPlayers.Take(topCount).ToList();
+        List<IPlayer> bottomRow = allPlayers.Skip(topCount).ToList();
+
+        //  Header (satu-satunya bagian berbingkai ║)
         DrawTop();
         DrawCenteredLine("♠ ♥  TEXAS HOLD'EM POKER  ♦ ♣", ConsoleColor.Yellow);
-        DrawDivider();
-        DrawLine($" Round    : {_controller.GetCurrentRound()}");
-        DrawLine($" Total Pot: {_controller.GetTotalPotAmount()} Chips");
+        DrawBottom();
+        Console.WriteLine();
 
-        if (mainPot != null && sidePots.Count > 0)
-        {
-            string potLine = $" Main Pot: {mainPot.TotalChips}";
-            for (int i = 0; i < sidePots.Count; i++)
-            {
-                potLine += $"  |  Side Pot {i + 1}: {sidePots[i].TotalChips}";
-            }
-            DrawLine(potLine);
-        }
+        //  Status bar (round & pot), terpisah dari meja
+        DrawStatusBar();
+        Console.WriteLine();
 
-        DrawDivider();
-        DrawCardsLine(" Community Cards : ", _controller.GetCommunityCards());
-        DrawDivider();
-        DrawPlayersList(currentPlayer);
-        DrawDivider();
-        DrawCardsLine(" Kartu Anda      : ", _controller.GetPlayerHoleCards(currentPlayer));
-        DrawDivider();
+        //  Meja (area terbuka, tanpa border)
+        DrawRule();
+        DrawSeatsRowPlain(topRow, currentPlayer, dealer);
+        DrawRule();
+        DrawCommunityCardsCentered();
+        DrawRule();
+        DrawSeatsRowPlain(bottomRow, currentPlayer, dealer);
+        DrawRule();
+        Console.WriteLine();
+
+        //  Panel aksi (berbingkai, seperti tombol aksi)
+        DrawTop();
         int actionCount = DrawAvailableActions(currentPlayer);
         DrawBottom();
 
         Console.Write($"Pilih opsi (1-{actionCount}): ");
     }
 
-    private void DrawPlayersList(IPlayer currentPlayer)
+    private void DrawRule()
     {
-        DrawLine(" PEMAIN", ConsoleColor.Cyan);
+        SetBorderColor();
+        Console.WriteLine(new string('─', TableWidth));
+        Console.ResetColor();
+    }
 
-        List<IPlayer> allPlayers = _controller.GetAllPlayers();
-        IPlayer dealer = _controller.GetDealer();
+    private void DrawStatusBar()
+    {
+        string roundText = $" Round: {_controller.GetCurrentRound()}";
+        string potText;
+
+        potText = $"Total Pot: {_controller.GetTotalPotAmount()} Chips ";
+
+        int pad = Math.Max(1, TableWidth - roundText.Length - potText.Length);
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.Write(roundText);
+        Console.ResetColor();
+        Console.Write(new string(' ', pad));
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine(potText);
+        Console.ResetColor();
+    }
+
+    private void DrawCommunityCardsCentered()
+    {
+        List<ICard> community = _controller.GetCommunityCards();
+        List<string> texts = new List<string>();
+
+        for (int i = 0; i < 5; i++)
+        {
+            texts.Add(i < community.Count ? community[i].ToString() : "[ ]");
+        }
+
+        int totalLen = texts.Sum(t => t.Length) + (texts.Count - 1);
+        int leftPad = Math.Max(0, (TableWidth - totalLen) / 2);
+
+        Console.Write(new string(' ', leftPad));
+
+        for (int i = 0; i < texts.Count; i++)
+        {
+            if (i < community.Count)
+            {
+                setCardColor(community[i].Suit);
+            }
+            else Console.ForegroundColor = ConsoleColor.DarkGray;
+
+            Console.Write(texts[i]);
+            Console.ResetColor();
+
+            if (i < texts.Count - 1)
+            {
+                Console.Write(" ");
+            }
+        }
+
+        Console.WriteLine();
+    }
+
+    private void DrawSeatsRowPlain(List<IPlayer> rowPlayers, IPlayer currentPlayer, IPlayer dealer)
+    {
         bool gameInProgress = _controller.GetGameState() == GameState.InProgress;
 
-        for (int i = 0; i < allPlayers.Count; i++)
+        List<string[]> seatLines = new List<string[]>();
+        List<ConsoleColor?> seatColors = new List<ConsoleColor?>();
+
+        foreach (IPlayer player in rowPlayers)
         {
-            IPlayer player = allPlayers[i];
-            bool isCurrentTurn = player == currentPlayer && gameInProgress;
+            bool isSelf = player == currentPlayer;
+            seatLines.Add(BuildSeatLines(player, isSelf, dealer));
 
-            string turnMarker = isCurrentTurn ? "▶" : " ";
-            string dealerMarker = (player == dealer) ? "D" : " ";
+            bool isTurn = isSelf && gameInProgress;
+            bool isOut = player.Status == PlayerStatus.Folded || player.Status == PlayerStatus.Bust;
 
-            string row = $" {turnMarker} [{dealerMarker}] {i + 1,2}. {player.Name,-15} │ Chips:{_controller.GetPlayerChips(player),6} │ Bet:{_controller.GetPlayerCurrentBet(player),5} │ {player.Status,-8}";
-            DrawLine(row, isCurrentTurn ? ConsoleColor.Yellow : null);
+            seatColors.Add(isTurn ? ConsoleColor.Green : (isOut ? ConsoleColor.DarkGray : (ConsoleColor?)null));
         }
+
+        while (seatLines.Count < SeatsPerRow)
+        {
+            seatLines.Add(new[] { "", "", "", "" });
+            seatColors.Add(null);
+        }
+
+        int rowWidth = SeatsPerRow * SeatWidth + (SeatsPerRow - 1);
+        int leftPad = Math.Max(0, (TableWidth - rowWidth) / 2);
+
+        for (int line = 0; line < 4; line++)
+        {
+            Console.Write(new string(' ', leftPad));
+
+            for (int s = 0; s < SeatsPerRow; s++)
+            {
+                string text = CenterText(seatLines[s][line], SeatWidth);
+
+                if (seatColors[s].HasValue)
+                {
+                    Console.ForegroundColor = seatColors[s].Value;
+                }
+                Console.Write(text);
+                if (seatColors[s].HasValue)
+                {
+                    Console.ResetColor();
+                }
+
+                if (s < SeatsPerRow - 1)
+                {
+                    Console.Write(" ");
+                }
+            }
+
+            Console.WriteLine();
+        }
+    }
+
+    private string[] BuildSeatLines(IPlayer player, bool isSelf, IPlayer dealer)
+    {
+        string marker = player == dealer ? "(D)" : "";
+
+        string cards;
+        if (isSelf)
+        {
+            cards = string.Join("", _controller.GetPlayerHoleCards(player).Select(c => c.ToString()));
+        }
+        else if (player.Status == PlayerStatus.Folded || player.Status == PlayerStatus.Bust)
+        {
+            cards = "";
+        }
+        else
+        {
+            cards = "[█][█]";
+        }
+
+        string name = player.Name.Length > SeatWidth ? player.Name.Substring(0, SeatWidth) : player.Name;
+
+        string statusTag = player.Status switch
+        {
+            PlayerStatus.Folded => "(Fold)",
+            PlayerStatus.AllIn => "(All-In)",
+            PlayerStatus.Bust => "(Bust)",
+            _ => ""
+        };
+
+        string info = statusTag != ""
+            ? statusTag
+            : $"{_controller.GetPlayerChips(player)}c";
+
+        string bet = _controller.GetPlayerCurrentBet(player) > 0
+            ? $"Bet:{_controller.GetPlayerCurrentBet(player)}"
+            : "";
+
+        return new[] { marker, cards, name, bet != "" ? $"{info} {bet}" : info };
+    }
+
+    private string CenterText(string content, int width)
+    {
+        if (content.Length > width)
+        {
+            content = content.Substring(0, width);
+        }
+        int totalPad = width - content.Length;
+        int left = totalPad / 2;
+        int right = totalPad - left;
+        return new string(' ', left) + content + new string(' ', right);
     }
 
     private int DrawAvailableActions(IPlayer currentPlayer)
@@ -513,7 +690,10 @@ public class ConsoleRenderer
                     .Where(w => pot.Contributions.ContainsKey(w))
                     .Distinct()
                     .ToList();
-                if (eligibleWinners.Count == 0) continue;
+                if (eligibleWinners.Count == 0)
+                {
+                    continue;
+                }
 
                 int share = pot.TotalChips / eligibleWinners.Count;
 

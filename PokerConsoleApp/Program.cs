@@ -29,4 +29,4 @@ Table table = new Table();
 GameController gameController = new GameController(smallBlind, bigBlind, players, chips, holeCards, currentBets, pots, deck, table);
 ConsoleRenderer consoleRenderer = new ConsoleRenderer(gameController);
 
-consoleRenderer.RunGame(smallBlind, bigBlind);
+consoleRenderer.RunGame();
