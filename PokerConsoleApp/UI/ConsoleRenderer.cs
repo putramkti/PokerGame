@@ -8,7 +8,7 @@ namespace PokerConsoleApp.UI;
 public class ConsoleRenderer
 {
 
-    private const int Width = 69;
+    private const int Width = 90;
     private static string Bar => new string('═', Width);
 
     private readonly GameController _controller;
@@ -352,7 +352,7 @@ public class ConsoleRenderer
 
         foreach (IPlayer p in players)
         {
-            DrawLine($"   • {p.Name,-12} : {_controller.GetPlayerChips(p)} chips");
+            DrawLine($" • {p.Name,-12} : {_controller.GetPlayerChips(p)} chips");
         }
 
         DrawLine();
@@ -387,7 +387,7 @@ public class ConsoleRenderer
 
         int topCount = (allPlayers.Count + 1) / 2;
         List<IPlayer> topRow = allPlayers.Take(topCount).ToList();
-        List<IPlayer> bottomRow = allPlayers.Skip(topCount).ToList();
+        List<IPlayer> bottomRow = allPlayers.Skip(topCount).Reverse().ToList();
 
         //  Header (satu-satunya bagian berbingkai ║)
         DrawTop();
@@ -402,9 +402,13 @@ public class ConsoleRenderer
         //  Meja (area terbuka, tanpa border)
         DrawRule();
         DrawSeatsRowPlain(topRow, currentPlayer, dealer);
-        DrawRule();
+        // DrawRule();
+        Console.WriteLine();
+        Console.WriteLine();
         DrawCommunityCardsCentered();
-        DrawRule();
+        Console.WriteLine();
+        Console.WriteLine();
+        // DrawRule();
         DrawSeatsRowPlain(bottomRow, currentPlayer, dealer);
         DrawRule();
         Console.WriteLine();
@@ -512,9 +516,10 @@ public class ConsoleRenderer
             {
                 string text = CenterText(seatLines[s][line], SeatWidth);
 
-                if (seatColors[s].HasValue)
+                ConsoleColor? currentColor = seatColors[s];
+                if (currentColor.HasValue)
                 {
-                    Console.ForegroundColor = seatColors[s].Value;
+                    Console.ForegroundColor = currentColor.Value;
                 }
                 Console.Write(text);
                 if (seatColors[s].HasValue)
