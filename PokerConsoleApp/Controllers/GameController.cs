@@ -8,7 +8,6 @@ namespace PokerConsoleApp.Controllers;
 
 public class GameController
 {
-    // private Dictionary<IPlayer, List<IChip>> _chips;
     private Dictionary<IPlayer, IChip> _chips;
     private Dictionary<IPlayer, List<ICard>> _holeCards;
     private Dictionary<IPlayer, int> _currentBets;
@@ -322,14 +321,12 @@ public class GameController
         _currentRound = GameRound.PreFlop;
         _gameState = GameState.InProgress;
 
-        // _table.CommunityCards.Clear();
         _pots.Clear();
         _pots.Add(new Pot());
 
         foreach (IPlayer player in _players)
         {
             _currentBets[player] = 0;
-            // _holeCards[player].Clear();
             if (player.Status != PlayerStatus.Bust)
             {
                 player.Status = PlayerStatus.Active;
@@ -378,7 +375,6 @@ public class GameController
     }
     private void ShuffleDeck()
     {
-        // _deck = new Deck();
         Random random = new Random();
         _deck.Cards = _deck.Cards.OrderBy(c => random.Next()).ToList();
 
@@ -398,32 +394,32 @@ public class GameController
 
     private void PostBlinds()
     {
-        int sbIndex = GetNextActivePlayerIndex(_dealerIndex);
-        int bbIndex = GetNextActivePlayerIndex(sbIndex);
+        int smallBlindIndex = GetNextActivePlayerIndex(_dealerIndex);
+        int bigBlindIndex = GetNextActivePlayerIndex(smallBlindIndex);
 
-        IPlayer sbPlayer = _players[sbIndex];
-        int sbTax = Math.Min(_smallBlind, _chips[sbPlayer].Amount);
-        _chips[sbPlayer].Amount -= sbTax;
-        _currentBets[sbPlayer] = sbTax;
+        IPlayer smallBlindPlayer = _players[smallBlindIndex];
+        int smallBlindTax = Math.Min(_smallBlind, _chips[smallBlindPlayer].Amount);
+        _chips[smallBlindPlayer].Amount -= smallBlindTax;
+        _currentBets[smallBlindPlayer] = smallBlindTax;
 
-        if (_chips[sbPlayer].Amount == 0)
+        if (_chips[smallBlindPlayer].Amount == 0)
         {
-            sbPlayer.Status = PlayerStatus.AllIn;
+            smallBlindPlayer.Status = PlayerStatus.AllIn;
         }
 
-        IPlayer bbPlayer = _players[bbIndex];
-        int bbTax = Math.Min(_bigBlind, _chips[bbPlayer].Amount);
-        _chips[bbPlayer].Amount -= bbTax;
-        _currentBets[bbPlayer] = bbTax;
+        IPlayer bigBlindPlayer = _players[bigBlindIndex];
+        int bigBlindTax = Math.Min(_bigBlind, _chips[bigBlindPlayer].Amount);
+        _chips[bigBlindPlayer].Amount -= bigBlindTax;
+        _currentBets[bigBlindPlayer] = bigBlindTax;
 
-        if (_chips[bbPlayer].Amount == 0)
+        if (_chips[bigBlindPlayer].Amount == 0)
         {
-            bbPlayer.Status = PlayerStatus.AllIn;
+            bigBlindPlayer.Status = PlayerStatus.AllIn;
         }
 
-        _currentHighestbet = Math.Max(sbTax, bbTax);
-        _lastRaiseAmount = Math.Max(bbTax - sbTax, _bigBlind - _smallBlind);
-        _lastRaiserIndex = bbIndex;
+        _currentHighestbet = Math.Max(smallBlindTax, bigBlindTax);
+        _lastRaiseAmount = Math.Max(bigBlindTax - smallBlindTax, _bigBlind - _smallBlind);
+        _lastRaiserIndex = bigBlindIndex;
 
         if (_lastRaiseAmount <= 0)
         {
@@ -528,7 +524,6 @@ public class GameController
             return true;
         }
 
-        // return activePlayers.All(p => _currentBets[p] == _currentHighestbet) && _currentPlayerIndex == _lastRaiserIndex;
         return _playersToAct <= 0 && activePlayers.All(p => _currentBets[p] == _currentHighestbet);
 
     }
@@ -571,7 +566,6 @@ public class GameController
 
         _currentHighestbet = 0;
         _lastRaiseAmount = _bigBlind;
-        // _lastRaiserIndex = -1;
 
         _playersToAct = _players.Count(p => p.Status == PlayerStatus.Active);
 
@@ -682,12 +676,10 @@ public class GameController
         HandEvaluation result = GetBestHandResult(player, allSevenCard);
 
         return result.HandRank;
-
     }
 
     private HandEvaluation GetBestHandResult(IPlayer player, List<ICard> sevenCards)
     {
-
         List<ICard> orderedCards = sevenCards.OrderByDescending(c => c.Rank).ToList();
 
         List<IGrouping<CardRank, ICard>> rankGroups = orderedCards.GroupBy(c => c.Rank).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Key).ToList();
@@ -852,7 +844,7 @@ public class GameController
             .ToList();
 
         List<IPlayer> eligible = new List<IPlayer>(contributors);
-        // batas minimal setiap level pots
+
         int previousLevel = 0;
 
         foreach (int level in allInLevels)

@@ -392,31 +392,27 @@ public class ConsoleRenderer
         List<IPlayer> topRow = allPlayers.Take(topCount).ToList();
         List<IPlayer> bottomRow = allPlayers.Skip(topCount).Reverse().ToList();
 
-        //  Header (satu-satunya bagian berbingkai ║)
         DrawTop();
         DrawCenteredLine("♠ ♥  TEXAS HOLD'EM POKER  ♦ ♣", ConsoleColor.Yellow);
         DrawBottom();
         Console.WriteLine();
 
-        //  Status bar (round & pot), terpisah dari meja
         DrawStatusBar();
         Console.WriteLine();
 
-        //  Meja (area terbuka, tanpa border)
         DrawRule();
         DrawSeatsRowPlain(topRow, currentPlayer, dealer);
-        // DrawRule();
+
         Console.WriteLine();
         Console.WriteLine();
         DrawCommunityCardsCentered();
         Console.WriteLine();
         Console.WriteLine();
-        // DrawRule();
+
         DrawSeatsRowPlain(bottomRow, currentPlayer, dealer);
         DrawRule();
         Console.WriteLine();
 
-        //  Panel aksi (berbingkai, seperti tombol aksi)
         DrawTop();
         int actionCount = DrawAvailableActions(currentPlayer);
         DrawBottom();
@@ -649,17 +645,14 @@ public class ConsoleRenderer
         DrawCenteredLine("*** HASIL HAND ***", ConsoleColor.Yellow);
         DrawLine();
 
-        // Tampilkan semua pemain aktif, urutkan berdasarkan hand rank
         List<IPlayer> activePlayers = _controller.GetAllPlayers()
             .Where(p => p.Status != PlayerStatus.Folded && p.Status != PlayerStatus.Bust)
             .ToList();
 
-        // Urutkan berdasarkan hand rank (tertinggi ke terendah)
         List<IPlayer> sortedPlayers = activePlayers
             .OrderByDescending(p => _controller.GetPlayerHandRank(p))
             .ToList();
 
-        // Tampilkan setiap pemain
         foreach (IPlayer player in sortedPlayers)
         {
             HandRank handRank = _controller.GetPlayerHandRank(player);
@@ -676,7 +669,6 @@ public class ConsoleRenderer
 
         DrawDivider();
 
-        // Tampilkan pemenang dan pot
         if (pots.Count == 1)
         {
             IPot pot = pots[0];
