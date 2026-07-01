@@ -14,6 +14,8 @@ public class GameController
     private Dictionary<IPlayer, int> _currentBets;
     private List<IPlayer> _players;
     private List<IPot> _pots;
+    private List<ICard> _burnCards;
+
     private IDeck _deck;
     private ITable _table;
 
@@ -31,7 +33,7 @@ public class GameController
     public Action<GameRound>? OnRoundChanged;
     public Action<List<IPlayer>>? OnHandWinnersDecided;
 
-    public GameController(int smallBlind, int bigBlind, List<IPlayer> players, Dictionary<IPlayer, IChip> chips, Dictionary<IPlayer, List<ICard>> holeCards, Dictionary<IPlayer, int> currentBet, List<IPot> pot, IDeck deck, ITable table)
+    public GameController(int smallBlind, int bigBlind, List<IPlayer> players, Dictionary<IPlayer, IChip> chips, Dictionary<IPlayer, List<ICard>> holeCards, Dictionary<IPlayer, int> currentBet, List<IPot> pot, List<ICard> burnCards, IDeck deck, ITable table)
     {
         _smallBlind = smallBlind;
         _bigBlind = bigBlind;
@@ -41,6 +43,7 @@ public class GameController
         _holeCards = holeCards;
         _currentBets = currentBet;
         _pots = pot;
+        _burnCards = burnCards;
 
         _deck = deck;
         _table = table;
@@ -333,8 +336,13 @@ public class GameController
             }
         }
 
-        CollectCommunityCardsToDeck();
-        CollectHoleCardsToDeck();
+        bool isAllCardsinDeck = _deck.Cards.Count < 52;
+        if (!isAllCardsinDeck)
+        {
+            CollectBurnCardsToDeck();
+            CollectCommunityCardsToDeck();
+            CollectHoleCardsToDeck();
+        }
 
         ShuffleDeck();
         PostBlinds();
@@ -344,6 +352,14 @@ public class GameController
         RunBettingRound();
     }
 
+    private void CollectBurnCardsToDeck()
+    {
+        foreach (ICard card in _burnCards)
+        {
+            _deck.Cards.Add(card);
+        }
+        _burnCards.Clear();
+    }
     private void CollectCommunityCardsToDeck()
     {
         foreach (ICard card in _table.CommunityCards)
@@ -456,7 +472,7 @@ public class GameController
 
     private void DealFlop()
     {
-        DealCard();
+        _burnCards.Add(DealCard());
 
         _table.CommunityCards.Add(DealCard());
         _table.CommunityCards.Add(DealCard());
@@ -465,14 +481,14 @@ public class GameController
 
     private void DealTurn()
     {
-        DealCard();
+        _burnCards.Add(DealCard());
 
         _table.CommunityCards.Add(DealCard());
     }
 
     private void DealRiver()
     {
-        DealCard();
+        _burnCards.Add(DealCard());
 
         _table.CommunityCards.Add(DealCard());
     }
@@ -688,7 +704,7 @@ public class GameController
 
             List<ICard> straightFlushCards = GetStraightSequence(flushCards);
 
-            bool isStraightFlush = straightFlushCards != null && straightFlushCards.Count > 0;
+            bool isStraightFlush = straightFlushCards.Count > 0;
             if (isStraightFlush)
             {
                 bool isRoyalFlush = straightFlushCards[0].Rank == CardRank.Ace;
@@ -722,7 +738,7 @@ public class GameController
         }
 
         List<ICard> straightCards = GetStraightSequence(orderedCards);
-        bool isStraight = straightCards != null && straightCards.Count > 0;
+        bool isStraight = straightCards.Count > 0;
         if (isStraight)
         {
             return new HandEvaluation(player, HandRank.Straight, straightCards);

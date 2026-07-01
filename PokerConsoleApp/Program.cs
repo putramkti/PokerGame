@@ -22,11 +22,12 @@ Dictionary<IPlayer, IChip> chips = new Dictionary<IPlayer, IChip>();
 Dictionary<IPlayer, List<ICard>> holeCards = new Dictionary<IPlayer, List<ICard>>();
 Dictionary<IPlayer, int> currentBets = new Dictionary<IPlayer, int>();
 List<IPot> pots = new List<IPot>();
+List<ICard> burnCards = new List<ICard>();
 
 Deck deck = new Deck(cards);
 Table table = new Table();
 
-GameController gameController = new GameController(smallBlind, bigBlind, players, chips, holeCards, currentBets, pots, deck, table);
+GameController gameController = new GameController(smallBlind, bigBlind, players, chips, holeCards, currentBets, pots, burnCards, deck, table);
 ConsoleRenderer consoleRenderer = new ConsoleRenderer(gameController);
 
 consoleRenderer.RunGame();
