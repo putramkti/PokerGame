@@ -229,7 +229,10 @@ public class ConsoleRenderer
         _controller.Raise(player, raiseTargetAmount);
     }
 
-    private void SetBorderColor() => Console.ForegroundColor = ConsoleColor.DarkCyan;
+    private void SetBorderColor()
+    {
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+    }
 
     private void DrawTop()
     {

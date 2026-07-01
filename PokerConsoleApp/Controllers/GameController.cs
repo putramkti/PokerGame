@@ -336,13 +336,9 @@ public class GameController
             }
         }
 
-        bool isAllCardsinDeck = _deck.Cards.Count < 52;
-        if (!isAllCardsinDeck)
-        {
-            CollectBurnCardsToDeck();
-            CollectCommunityCardsToDeck();
-            CollectHoleCardsToDeck();
-        }
+        CollectBurnCardsToDeck();
+        CollectCommunityCardsToDeck();
+        CollectHoleCardsToDeck();
 
         ShuffleDeck();
         PostBlinds();
